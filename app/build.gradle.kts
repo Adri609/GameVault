@@ -22,11 +22,29 @@ android {
     }
 
     buildTypes {
-        release {
+        getByName("debug") {
+            buildConfigField(
+                "String",
+                "IGDB_CLIENT_ID",
+                "\"${project.findProperty("IGDB_CLIENT_ID")}\""
+            )
+            buildConfigField(
+                "String",
+                "STEAM_API_KEY",
+                "\"${project.findProperty("STEAM_API_KEY")}\""
+            )
+        }
+        getByName("release") {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
+            )
+            buildConfigField(
+                "String", "IGDB_CLIENT_ID", "\"${project.findProperty("IGDB_CLIENT_ID")}\""
+            )
+            buildConfigField(
+                "String", "STEAM_API_KEY", "\"${project.findProperty("STEAM_API_KEY")}\""
             )
         }
     }
@@ -36,6 +54,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
