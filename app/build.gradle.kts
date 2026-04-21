@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -74,4 +76,28 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    // DEPENDENCIAS GAMEVAULT
+
+    // Navegación en Compose
+    implementation(libs.androidx.navigation.compose)
+
+    // Retrofit para llamar a las APIs de IGDB y Steam
+    implementation(libs.retrofit2.retrofit)
+    implementation(libs.converter.gson)
+
+    // Room (Base de datos local)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    // Coil (Para cargar las portadas de los juegos desde URLs)
+    implementation(libs.coil.compose)
+
+    // Hilt (Inyección de dependencias)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.android.compiler)
+
+    // ViewModel para Compose
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 }
