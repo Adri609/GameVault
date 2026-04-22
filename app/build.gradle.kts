@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -5,6 +7,13 @@ plugins {
     alias(libs.plugins.google.gms.services)
 
     id("com.google.dagger.hilt.android")
+}
+
+// Puente para que el proyecto pueda leer y cargar el archivo local.properties
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
 }
 
 android {
@@ -22,33 +31,22 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        // Centralizar todas las claves leyendo del local.properties
+        buildConfigField("String", "IGDB_CLIENT_ID", "\"${localProperties.getProperty("IGDB_CLIENT_ID", "")}\"")
+        buildConfigField("String", "IGDB_ACCESS_TOKEN", "\"${localProperties.getProperty("IGDB_ACCESS_TOKEN", "")}\"")
+        buildConfigField("String", "STEAM_API_KEY", "\"${localProperties.getProperty("STEAM_API_KEY", "")}\"")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         getByName("debug") {
-            buildConfigField(
-                "String",
-                "IGDB_CLIENT_ID",
-                "\"${project.findProperty("IGDB_CLIENT_ID")}\""
-            )
-            buildConfigField(
-                "String",
-                "STEAM_API_KEY",
-                "\"${project.findProperty("STEAM_API_KEY")}\""
-            )
         }
         getByName("release") {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
-            )
-            buildConfigField(
-                "String", "IGDB_CLIENT_ID", "\"${project.findProperty("IGDB_CLIENT_ID")}\""
-            )
-            buildConfigField(
-                "String", "STEAM_API_KEY", "\"${project.findProperty("STEAM_API_KEY")}\""
             )
         }
     }
@@ -107,4 +105,8 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+
+    // OkHttp (Para las peticiones HTTP)
+    implementation(libs.okhttp.core)
+    implementation(libs.okhttp.logging)
 }
