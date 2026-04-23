@@ -97,6 +97,7 @@ dependencies {
     // Hilt (Inyección de dependencias)
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
+    implementation(libs.hilt.navigation.compose)
 
     // ViewModel para Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -109,4 +110,7 @@ dependencies {
     // OkHttp (Para las peticiones HTTP)
     implementation(libs.okhttp.core)
     implementation(libs.okhttp.logging)
+
+    // Google authenticator
+    implementation(libs.play.services.auth)
 }
