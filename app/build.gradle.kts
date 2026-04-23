@@ -79,6 +79,9 @@ dependencies {
 
     // DEPENDENCIAS GAMEVAULT
 
+    // Iconos
+    implementation(libs.androidx.material.icons.extended)
+
     // Navegación en Compose
     implementation(libs.androidx.navigation.compose)
 
