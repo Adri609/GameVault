@@ -5,6 +5,6 @@ package com.gamevault.ui.navigation
  * Cada objeto representa un destino con una cadena de texto identificadora.
  */
 sealed class Routes(val route: String) {
-    object Login : Routes("login_screen")
+    object Register : Routes("register_screen")
     object Home : Routes("home_screen")
 }

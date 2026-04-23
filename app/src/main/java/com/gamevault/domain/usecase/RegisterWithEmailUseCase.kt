@@ -4,12 +4,12 @@ import com.gamevault.data.repository.AuthRepository
 import com.gamevault.domain.model.User
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.tasks.await
-import jakarta.inject.Inject
+import javax.inject.Inject
 
 /**
  * Caso de uso para gestionar el registro de usuarios mediante correo y contraseña.
  */
-class LoginWithEmailUseCase @Inject constructor(
+class RegisterWithEmailUseCase @Inject constructor(
     private val auth: FirebaseAuth,
     private val authRepository: AuthRepository
 ) {

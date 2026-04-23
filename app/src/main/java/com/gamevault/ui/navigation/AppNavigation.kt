@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.composable
-import com.gamevault.ui.screens.auth.LoginScreen
+import com.gamevault.ui.screens.auth.RegisterScreen
 
 /**
  * Configura el grafo de navegación de la aplicación.
@@ -19,15 +19,15 @@ import com.gamevault.ui.screens.auth.LoginScreen
 fun AppNavigation() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = Routes.Login.route) {
-        composable(Routes.Login.route) {
-            LoginScreen(
+    NavHost(navController = navController, startDestination = Routes.Register.route) {
+        composable(Routes.Register.route) {
+            RegisterScreen(
                 onNavigateToHome = {
                     // Cuando haya éxito en el registro se navega al home
                     navController.navigate(Routes.Home.route) {
-                        /*Esta línea borra el Login del historial para no volver al Login
+                        /*Esta línea borra el Register del historial para no volver al Register
                         * si el usuario pulsa el botón atrás del móvil*/
-                        popUpTo(Routes.Login.route) { inclusive = true }
+                        popUpTo(Routes.Register.route) { inclusive = true }
                     }
                 }
             )

@@ -23,14 +23,14 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 
 /**
- * Pantalla de autenticación que permite el registro por Email y Google.
+ * Pantalla de registro que permite el registro por Email y Google.
  * 
- * @param viewModel Instancia de [LoginViewModel] para gestionar el estado.
+ * @param viewModel Instancia de [RegisterViewModel] para gestionar el estado.
  * @param onNavigateToHome Navegación tras una autenticación exitosa.
  */
 @Composable
-fun LoginScreen(
-    viewModel: LoginViewModel = hiltViewModel(),
+fun RegisterScreen(
+    viewModel: RegisterViewModel = hiltViewModel(),
     onNavigateToHome: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -61,7 +61,7 @@ fun LoginScreen(
     }
     val googleSignInClient = remember { GoogleSignIn.getClient(context, gso) }
 
-    // Efecto secundario para navegar cuando el login es exitoso
+    // Efecto secundario para navegar cuando el proceso es exitoso
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
             onNavigateToHome()
@@ -77,22 +77,25 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        // Título que cambia según el modo
         Text(
-            text = "GameVault",
-            style = MaterialTheme.typography.headlineLarge,
+            text = if (uiState.isLoginMode) "GameVault" else "Crea tu cuenta",
+            style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
         // Formulario de registro con email
-        GameVaultTextField(
-            value = uiState.username,
-            onValueChange = viewModel::onUsernameChanged,
-            label = "Nombre de usuario"
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
+        // El campo de usuario solo aparecerá en caso de estar en el formulario de registro
+        if (!uiState.isLoginMode) {
+            GameVaultTextField(
+                value = uiState.username,
+                onValueChange = { viewModel.onUsernameChanged(it) },
+                label = "Nombre de usuario"
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         GameVaultTextField(
             value = uiState.email,
@@ -119,9 +122,10 @@ fun LoginScreen(
             )
         }
 
+        // Botón principal adaptativo
         GameVaultButton(
-            text = "Registrarse",
-            onClick = viewModel::onRegisterClicked,
+            text = if (uiState.isLoginMode) "Iniciar Sesión" else "Registrarse",
+            onClick = { viewModel.onRegisterClicked() },
             isLoading = uiState.isLoading
         )
 
@@ -132,10 +136,24 @@ fun LoginScreen(
         // Opción de autenticación externa
         OutlinedButton(
             onClick = { launcher.launch(googleSignInClient.signInIntent) },
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
             enabled = !uiState.isLoading
         ) {
             Text("Continuar con Google")
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // El texto "interruptor" para cambiar de modo
+        TextButton(onClick = { viewModel.toggleLoginMode() }) {
+            Text(
+                text = if (uiState.isLoginMode)
+                    "¿No tienes cuenta? Regístrate aquí"
+                else
+                    "¿Ya tienes cuenta? Inicia sesión"
+            )
         }
     }
 }
