@@ -17,13 +17,16 @@ import androidx.navigation.compose.rememberNavController
 import com.gamevault.ui.components.GameVaultBottomBar
 import com.gamevault.ui.navigation.Routes
 
+/**
+ * Pantalla principal que contiene el esqueleto de la aplicación con navegación por pestañas.
+ */
 @Composable
 fun MainScreen() {
     val bottomNavController = rememberNavController()
 
     Scaffold(
         bottomBar = {
-            // Obtener la ruta actual para pasársela al componente
+            // Obtener la ruta actual para resaltar el icono correspondiente en la barra inferior
             val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route
 
@@ -31,13 +34,11 @@ fun MainScreen() {
                 currentRoute = currentRoute,
                 onNavigate = { route ->
                     bottomNavController.navigate(route) {
-                        // Evitar múltiples copias de la misma pantalla
+                        // Navegación optimizada para pestañas
                         popUpTo(bottomNavController.graph.findStartDestination().id) {
                             saveState = true
                         }
-                        // Evitar que se recargue la pantalla si ya estamos en ella
                         launchSingleTop = true
-                        // Restaura el estado anterior (ej: posición del scroll)
                         restoreState = true
                     }
                 }
@@ -45,15 +46,14 @@ fun MainScreen() {
         }
     ) { innerPadding ->
 
+        // Contenedor de navegación para las diferentes pestañas
         NavHost(
             navController = bottomNavController,
             startDestination = Routes.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Routes.Home.route) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Pantalla de Inicio (Descubrir juegos)")
-                }
+                HomeScreen()
             }
             composable(Routes.Search.route) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

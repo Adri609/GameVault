@@ -33,7 +33,7 @@ android {
 
         // Centralizar todas las claves leyendo del local.properties
         buildConfigField("String", "IGDB_CLIENT_ID", "\"${localProperties.getProperty("IGDB_CLIENT_ID", "")}\"")
-        buildConfigField("String", "IGDB_ACCESS_TOKEN", "\"${localProperties.getProperty("IGDB_ACCESS_TOKEN", "")}\"")
+        buildConfigField("String", "IGDB_CLIENT_SECRET", "\"${localProperties.getProperty("IGDB_CLIENT_SECRET", "")}\"")
         buildConfigField("String", "STEAM_API_KEY", "\"${localProperties.getProperty("STEAM_API_KEY", "")}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

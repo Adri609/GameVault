@@ -29,7 +29,7 @@ object NetworkModule {
         val authInterceptor = Interceptor { chain ->
             val request = chain.request().newBuilder()
                 .addHeader("Client-ID", BuildConfig.IGDB_CLIENT_ID)
-                .addHeader("Authorization", "Bearer ${BuildConfig.IGDB_ACCESS_TOKEN}")
+                .addHeader("Authorization", "Bearer ${BuildConfig.IGDB_CLIENT_SECRET}")
                 .build()
             chain.proceed(request)
         }
