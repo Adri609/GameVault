@@ -16,6 +16,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.gamevault.ui.components.GameVaultBottomBar
 import com.gamevault.ui.navigation.Routes
+import com.gamevault.ui.screens.vault.VaultScreen
 
 /**
  * Pantalla principal que contiene el esqueleto de la aplicación con navegación por pestañas.
@@ -62,7 +63,7 @@ fun MainScreen() {
             }
             composable(Routes.Vault.route) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Tu Colección de Juegos")
+                    VaultScreen()
                 }
             }
         }

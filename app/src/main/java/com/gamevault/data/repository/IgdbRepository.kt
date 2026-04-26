@@ -46,7 +46,7 @@ class IgdbRepository {
 
         // Consulta: Juegos recientes con más repercusión
         val queryText = """
-            fields id, name, cover.image_id, rating, first_release_date;
+            fields id, name, cover.image_id, rating, first_release_date, genres.name, platforms.name;
             where first_release_date > $sixMonthsAgo & first_release_date < $currentTimestamp & cover != null;
             sort rating_count desc;
             limit 12;
@@ -65,7 +65,9 @@ class IgdbRepository {
                 name = apiGame.name,
                 coverUrl = apiGame.getCoverUrl(),
                 rating = apiGame.rating,
-                releaseDate = apiGame.firstReleasedDate
+                releaseDate = apiGame.firstReleasedDate,
+                genres = apiGame.genres?.map { it.name } ?: emptyList(),
+                platforms = apiGame.platforms?.map { it.name } ?: emptyList()
             )
         }
     }
@@ -80,7 +82,7 @@ class IgdbRepository {
 
         // Consulta para juegos recién salidos
         val queryText = """
-            fields id, name, cover.image_id, rating, first_release_date;
+            fields id, name, cover.image_id, rating, first_release_date, genres.name, platforms.name;
             where rating_count > 10 & cover != null;
             sort first_release_date desc;
             limit 12;
@@ -98,7 +100,9 @@ class IgdbRepository {
                 name = apiGame.name,
                 coverUrl = apiGame.getCoverUrl(),
                 rating = apiGame.rating,
-                releaseDate = apiGame.firstReleasedDate
+                releaseDate = apiGame.firstReleasedDate,
+                genres = apiGame.genres?.map { it.name } ?: emptyList(),
+                platforms = apiGame.platforms?.map { it.name } ?: emptyList()
             )
         }
     }
@@ -116,7 +120,7 @@ class IgdbRepository {
 
         // Consulta: Juegos futuros con portada y ordenados por expectación
         val queryText = """
-            fields id, name, cover.image_id, rating, first_release_date;
+            fields id, name, cover.image_id, rating, first_release_date, genres.name, platforms.name;
             where first_release_date > $currentTimestamp & cover != null & hypes != null;
             sort hypes desc;
             limit 12;
@@ -134,7 +138,9 @@ class IgdbRepository {
                 name = apiGame.name,
                 coverUrl = apiGame.getCoverUrl(),
                 rating = apiGame.rating,
-                releaseDate = apiGame.firstReleasedDate
+                releaseDate = apiGame.firstReleasedDate,
+                genres = apiGame.genres?.map { it.name } ?: emptyList(),
+                platforms = apiGame.platforms?.map { it.name } ?: emptyList()
             )
         }
     }

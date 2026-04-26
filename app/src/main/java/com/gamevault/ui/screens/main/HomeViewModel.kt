@@ -2,18 +2,25 @@ package com.gamevault.ui.screens.main
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gamevault.data.local.dao.GameDao
+import com.gamevault.data.local.entity.GameEntity
 import com.gamevault.data.repository.IgdbRepository
 import com.gamevault.domain.model.Game
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * ViewModel que gestiona los datos de la pantalla de inicio.
  * Se encarga de llamar al repositorio para obtener los juegos de IGDB.
  */
-class HomeViewModel : ViewModel() {
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val gameDao: GameDao
+) : ViewModel() {
 
     private val repository = IgdbRepository()
 
@@ -77,6 +84,29 @@ class HomeViewModel : ViewModel() {
                         "Error Anticipated: ${e.response()?.errorBody()?.string()}"
                     )
                 }
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun addToVault(game: Game) {
+        viewModelScope.launch {
+            try {
+                // Transformar el modelo de dominio a la entidad de la bdd
+
+                val entity = GameEntity(
+                    game.id,
+                    game.name,
+                    game.coverUrl,
+                    game.rating,
+                    game.releaseDate,
+                    game.genres,
+                    game.platforms
+                )
+
+                gameDao.insertGame(entity)
+                android.util.Log.d("Vault", "¡${game.name} guardado en la bóveda!")
+            } catch (e: Exception) {
                 e.printStackTrace()
             }
         }

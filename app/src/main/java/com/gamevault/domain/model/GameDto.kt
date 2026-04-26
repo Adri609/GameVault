@@ -8,7 +8,9 @@ data class GameDto(
     val cover: Cover?,
     val rating: Double?,
     @SerializedName("first_release_date")
-    val firstReleasedDate: Long?
+    val firstReleasedDate: Long?,
+    val genres: List<GenreDto>?,
+    val platforms: List<PlatformDto>?
 ) {
     fun getCoverUrl(): String? {
         return cover?.imageId?.let {
@@ -16,6 +18,9 @@ data class GameDto(
         }
     }
 }
+
+data class GenreDto(val name: String)
+data class PlatformDto(val name: String)
 
 data class Cover(
     val id: Long,
