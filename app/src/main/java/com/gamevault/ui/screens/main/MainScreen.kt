@@ -16,6 +16,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.gamevault.ui.components.GameVaultBottomBar
 import com.gamevault.ui.navigation.Routes
+import com.gamevault.ui.screens.search.SearchScreen
 import com.gamevault.ui.screens.vault.VaultScreen
 
 /**
@@ -58,7 +59,7 @@ fun MainScreen() {
             }
             composable(Routes.Search.route) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Pantalla de Búsqueda")
+                    SearchScreen()
                 }
             }
             composable(Routes.Vault.route) {

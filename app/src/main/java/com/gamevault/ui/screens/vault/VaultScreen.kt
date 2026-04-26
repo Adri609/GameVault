@@ -14,6 +14,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.gamevault.ui.components.GameGrid
 
+/**
+ * Pantalla que muestra la colección personal de juegos del usuario (La Bóveda).
+ * Los datos se obtienen de la base de datos local.
+ */
 @Composable
 fun VaultScreen(
     viewModel: VaultViewModel = hiltViewModel()
@@ -25,6 +29,7 @@ fun VaultScreen(
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
+        // Título de la pantalla
         Text(
             text = "Mi Bóveda",
             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
@@ -32,6 +37,7 @@ fun VaultScreen(
         )
 
         if (savedGames.isEmpty()) {
+            // Mensaje informativo si no hay juegos guardados
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -44,7 +50,7 @@ fun VaultScreen(
                 )
             }
         } else {
-            // Llamamos a nuestro componente súper limpio
+            // Rejilla de juegos guardados
             GameGrid(
                 games = savedGames,
                 contentPadding = PaddingValues(bottom = 16.dp),

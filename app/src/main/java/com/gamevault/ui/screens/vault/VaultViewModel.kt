@@ -11,11 +11,19 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
+/**
+ * ViewModel que gestiona la lógica de la pantalla de la Bóveda.
+ * Se encarga de observar la base de datos local y mapear los datos a modelos de dominio.
+ */
 @HiltViewModel
 class VaultViewModel @Inject constructor(
     private val gameDao: GameDao
 ) : ViewModel() {
 
+    /**
+     * Flujo de estado que contiene la lista de juegos guardados por el usuario.
+     * Mapea automáticamente las entidades de Room a objetos de dominio [Game].
+     */
     val savedGames: StateFlow<List<Game>> = gameDao.getAllFavoriteGames()
         .map { entities ->
             entities.map { entity ->
@@ -32,7 +40,7 @@ class VaultViewModel @Inject constructor(
         }
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000), // Optimiza el uso de batería si la app se va a 2º plano
+            started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
 }

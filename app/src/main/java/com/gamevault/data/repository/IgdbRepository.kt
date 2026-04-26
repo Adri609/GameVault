@@ -144,4 +144,42 @@ class IgdbRepository {
             )
         }
     }
+
+    suspend fun searchGames(query: String): List<Game> {
+        return try {
+
+            val token = getValidToken()
+            val authHeader = "Bearer $token"
+
+            val queryText = """
+                search "$query";
+                fields id, name, cover.image_id, rating, first_release_date, genres.name, platforms.name;
+                where version_parent = null & cover != null;
+                limit 20;
+            """.trimIndent()
+
+            // Convertir el texto a RequestBody
+            val requestBody = queryText.toRequestBody("text/plain".toMediaTypeOrNull())
+
+            // Llamar a Retrofit con todos los parámetros correctos y mapear
+            RetrofitClient.igdbApi.getGames(
+                clientId = BuildConfig.IGDB_CLIENT_ID,
+                authorization = authHeader,
+                query = requestBody
+            ).map { apiGame ->
+                Game(
+                    id = apiGame.id,
+                    name = apiGame.name,
+                    coverUrl = apiGame.getCoverUrl(),
+                    rating = apiGame.rating,
+                    releaseDate = apiGame.firstReleasedDate,
+                    genres = apiGame.genres?.map { it.name } ?: emptyList(),
+                    platforms = apiGame.platforms?.map { it.name } ?: emptyList()
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
 }
