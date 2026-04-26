@@ -6,29 +6,28 @@ import com.google.firebase.firestore.FirebaseFirestore
 import jakarta.inject.Inject
 import kotlinx.coroutines.tasks.await
 
+/**
+ * Repositorio encargado de gestionar la persistencia de datos de usuario en Firebase.
+ */
 class AuthRepository @Inject constructor(
-    // Inyectar las dependencias necesarias
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore
 ) {
-    // Referencia a la colección "users" que se creará en la base de datos
+    // Referencia a la colección "users" en Firestore
     private val usersCollection = firestore.collection("users")
 
-    // Función para guardar un usuario en Firestore
-    // suspend hace que la función sea llamada desde una corrutina
+    /**
+     * Guarda la información del usuario en Firestore.
+     * @param user Objeto [User] con los datos a persistir.
+     * @return [Result] indicando éxito o fallo.
+     */
     suspend fun saveUserToFirestore(user: User): Result<Unit> {
-        // Guardar el documento usando el ID del usuario como nombre del documento
         return try {
-            usersCollection.document(user.id).set(user).await() // Espera a que se complete la operación
+            // Guardar el documento usando el ID del usuario como identificador
+            usersCollection.document(user.id).set(user).await() 
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
-
-        /*
-        * .await() Es una función de las corrutinas de Kotlin que transforma
-        * los callbacks de Firebase en código lineal y limpio,
-        * evitando que la pantalla del móvil se congele mientras guarda los datos en internet.
-        */
     }
 }
