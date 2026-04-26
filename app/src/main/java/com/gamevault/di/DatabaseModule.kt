@@ -1,12 +1,14 @@
 package com.gamevault.di
 
 import android.app.Application
+import android.content.Context
 import androidx.room.Room
 import com.gamevault.data.local.GameVaultDatabase
 import com.gamevault.data.local.dao.GameDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -22,11 +24,11 @@ object DatabaseModule {
      */
     @Provides
     @Singleton
-    fun provideGameVaultDatabase(app: Application): GameVaultDatabase {
+    fun provideDatabase(@ApplicationContext context: Context): GameVaultDatabase {
         return Room.databaseBuilder(
-            app,
+            context,
             GameVaultDatabase::class.java,
-            "gamevault_db"
+            "game_vault_db"
         ).build()
     }
 
@@ -34,7 +36,6 @@ object DatabaseModule {
      * Provee el DAO necesario para realizar operaciones sobre la tabla de juegos.
      */
     @Provides
-    @Singleton
     fun provideGameDao(db: GameVaultDatabase): GameDao {
         return db.gameDao
     }

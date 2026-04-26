@@ -8,7 +8,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.gamevault.ui.components.GameCarousel // Tu nuevo componente reutilizable
 
 /**
@@ -17,9 +17,8 @@ import com.gamevault.ui.components.GameCarousel // Tu nuevo componente reutiliza
  */
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
-    // Observar los flujos de estado del ViewModel
     val popularGames by viewModel.popularGames.collectAsState()
     val newReleases by viewModel.newReleases.collectAsState()
     val anticipatedGames by viewModel.anticipatedGames.collectAsState()
@@ -27,29 +26,33 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()) // Scroll vertical para navegar entre carruseles
+            .verticalScroll(rememberScrollState())
             .padding(vertical = 16.dp)
     ) {
-        // Sección de Juegos Populares
+        // Juegos Populares
         GameCarousel(
             title = "Juegos Populares",
-            games = popularGames
+            games = popularGames,
+            onGameAddClick = { game -> viewModel.addToVault(game) }
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Sección de Últimos Lanzamientos
+        // Últimos Lanzamientos
         GameCarousel(
             title = "Últimos Lanzamientos",
-            games = newReleases
+            games = newReleases,
+            onGameAddClick = { game -> viewModel.addToVault(game) }
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Sección de Juegos Más Esperados
+        // Juegos Más Esperados
         GameCarousel(
             title = "Más Esperados",
-            games = anticipatedGames
+            games = anticipatedGames,
+            onGameAddClick = { game -> viewModel.addToVault(game) },
+            showActionButton = false // No mostrar el botón de añadir para esta sección, solo informativa
         )
 
         Spacer(modifier = Modifier.height(24.dp))
