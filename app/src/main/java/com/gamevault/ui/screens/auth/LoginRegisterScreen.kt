@@ -212,7 +212,7 @@ fun RegisterScreen(
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // 2. Logo y Título Estilizado
             Image(
@@ -236,7 +236,7 @@ fun RegisterScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(35.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // 3. Contenedor del Formulario (Tarjeta Semi-transparente)
             Column(
@@ -368,7 +368,7 @@ fun RegisterScreen(
                 }
             } // Fin Tarjeta Formulario
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // 4. Sección de Divisor y Google
             Row(
@@ -385,7 +385,7 @@ fun RegisterScreen(
                 Divider(modifier = Modifier.weight(1f), color = Color.White.copy(alpha = 0.2f))
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Botón de Google Estilizado
             OutlinedButton(
@@ -413,7 +413,7 @@ fun RegisterScreen(
             }
 
             Spacer(modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // 5. Interruptor de Modo Inferior
             TextButton(
@@ -429,7 +429,7 @@ fun RegisterScreen(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }
