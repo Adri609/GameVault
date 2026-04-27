@@ -201,15 +201,24 @@ class IgdbRepository {
 
             response.firstOrNull()?.let { apiGame ->
 
-                var steamAppId = apiGame.externalGames?.find { it.category == 1 }?.uid
+                android.util.Log.d("GameVault_Debug", "External Games crudos: ${apiGame.externalGames}")
+                android.util.Log.d("GameVault_Debug", "Websites crudos: ${apiGame.websites}")
+
+                val steamUrl = apiGame.websites?.find {
+                    it.url?.contains("steampowered.com", ignoreCase = true) == true
+                }?.url
+
+                var steamAppId: String? = null
+
+                if (steamUrl != null) {
+                    // Extraemos solo el número de la URL
+                    val regex = """app/(\d+)""".toRegex()
+                    val match = regex.find(steamUrl)
+                    steamAppId = match?.groupValues?.get(1)
+                }
 
                 if (steamAppId == null) {
-                    val steamUrl = apiGame.websites?.find { it.category == 13 }?.url
-                    if (steamUrl != null) {
-                        val regex = """app/(\d+)""".toRegex()
-                        val match = regex.find(steamUrl)
-                        steamAppId = match?.groupValues?.get(1)
-                    }
+                    steamAppId = apiGame.externalGames?.find { it.category == 1 }?.uid
                 }
 
                 android.util.Log.d("GameVault_Debug", "Juego: ${apiGame.name} | Steam ID Final: $steamAppId")
