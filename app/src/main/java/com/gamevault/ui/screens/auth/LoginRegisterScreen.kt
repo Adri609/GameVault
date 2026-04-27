@@ -59,6 +59,8 @@ fun RegisterScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+    val gradientStartColor = Color(0xFF6200EE)
+    val gradientEndColor = Color(0xFF03DAC6)
 
 
     // Launcher para capturar el resultado del flujo de Google Sign-In
@@ -252,30 +254,61 @@ fun RegisterScreen(
                     exit = fadeOut()
                 ) {
                     Column {
-                        GameVaultTextField(
+                        //Color de los textField
+                        OutlinedTextField(
                             value = uiState.username,
                             onValueChange = { viewModel.onUsernameChanged(it) },
-                            label = "Nombre de usuario"
+                            label = { Text("Nombre de usuario") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                cursorColor = Color.White,
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.Gray,
+                                focusedBorderColor = Color(0xFF6200EE),
+                                unfocusedBorderColor = Color.Gray
+                            )
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
 
                 // Campo Email
-                GameVaultTextField(
+
+                OutlinedTextField(
                     value = uiState.email,
                     onValueChange = viewModel::onEmailChanged,
-                    label = "Correo electrónico"
+                    label = { Text("Correo electrónico") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        cursorColor = Color.White,
+                        focusedLabelColor = gradientStartColor,
+                        unfocusedLabelColor = Color.Gray,
+                        focusedBorderColor = gradientStartColor,
+                        unfocusedBorderColor = Color.Gray
+                    )
                 )
-
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Campo Contraseña
-                GameVaultTextField(
+                OutlinedTextField(
                     value = uiState.password,
                     onValueChange = viewModel::onPasswordChanged,
-                    label = "Contraseña",
-                    visualTransformation = PasswordVisualTransformation()
+                    label = { Text("Contraseña") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        cursorColor = Color.White,
+                        focusedLabelColor = gradientStartColor,
+                        unfocusedLabelColor = Color.Gray,
+                        focusedBorderColor = gradientStartColor,
+                        unfocusedBorderColor = Color.Gray
+                    )
                 )
 
                 // Mensaje de Error
