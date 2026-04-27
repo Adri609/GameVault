@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.gamevault.ui.components.AchievementItem
 import com.gamevault.ui.components.FadingBlurredBackground
 import com.gamevault.ui.components.MetadataBlock
 import com.gamevault.utils.formatReleaseDate
@@ -37,8 +38,10 @@ fun GameDetailScreen(
     viewModel: GameDetailViewModel = hiltViewModel()
 ) {
     val game by viewModel.game.collectAsState()
+    val achievements by viewModel.achievements.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isSaved by viewModel.isSaved.collectAsState()
+    val showHiddenAchievements by viewModel.showHiddenAchievements.collectAsState()
 
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -141,6 +144,47 @@ fun GameDetailScreen(
                     lineHeight = 24.sp,
                     fontSize = 15.sp
                 )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                if (achievements.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Logros de Steam",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 18.sp
+                        )
+
+                        // Botón para mostrar/ocultar spoilers (Solo si hay logros ocultos en la lista)
+                        val hasHidden = achievements.any { it.isHidden }
+                        if (hasHidden) {
+                            TextButton(
+                                onClick = { viewModel.toggleHiddenAchievements() },
+                                contentPadding = PaddingValues(0.dp)
+                            ) {
+                                Text(
+                                    text = if (showHiddenAchievements) "Ocultar spoilers" else "Mostrar ocultos",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    achievements.forEach { achievement ->
+                        AchievementItem(
+                            achievement = achievement,
+                            showHidden = showHiddenAchievements
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(100.dp))
             }

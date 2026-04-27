@@ -12,5 +12,6 @@ data class Game(
     val releaseDate: Long?,
     val genres: List<String> = emptyList(),
     val platforms: List<String> = emptyList(),
-    val summary: String? = null
+    val summary: String? = null,
+    val steamId: String? = null
 )

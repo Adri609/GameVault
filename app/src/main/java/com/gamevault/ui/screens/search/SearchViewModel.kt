@@ -77,7 +77,8 @@ class SearchViewModel @Inject constructor(
                 releaseDate = game.releaseDate,
                 genres = game.genres,
                 platforms = game.platforms,
-                summary = game.summary
+                summary = game.summary,
+                steamId = game.steamId
             )
             gameDao.insertGame(entity)
         }

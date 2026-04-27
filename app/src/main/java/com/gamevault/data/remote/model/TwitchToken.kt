@@ -1,4 +1,4 @@
-package com.gamevault.domain.model
+package com.gamevault.data.remote.model
 
 import com.google.gson.annotations.SerializedName
 

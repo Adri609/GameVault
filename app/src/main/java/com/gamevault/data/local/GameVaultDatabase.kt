@@ -13,8 +13,8 @@ import com.gamevault.data.local.entity.GameEntity
  */
 @Database(
     entities = [GameEntity::class],
-    version = 2,
-    exportSchema = false
+    version = 3,
+    exportSchema = false,
 )
 @TypeConverters(StringListConverter::class)
 abstract class GameVaultDatabase : RoomDatabase() {

@@ -14,7 +14,9 @@ data class GameDto(
     val firstReleasedDate: Long?,
     val genres: List<GenreDto>?,
     val platforms: List<PlatformDto>?,
-    val summary: String?
+    val summary: String?,
+    @SerializedName("external_games") val externalGames: List<ExternalGameDto>? = null,
+    val websites: List<WebsiteDto>? = null
 ) {
     /**
      * Construye la URL completa de la imagen de portada usando el image_id de IGDB.
@@ -43,4 +45,18 @@ data class Cover(
     val id: Long,
     @SerializedName("image_id")
     val imageId: String
+)
+
+/**
+ * Modelo para la información de los logros de Steam
+ */
+
+data class ExternalGameDto(
+    val category: Int,
+    val uid: String
+)
+
+data class WebsiteDto(
+    val category: Int,
+    val url: String?
 )

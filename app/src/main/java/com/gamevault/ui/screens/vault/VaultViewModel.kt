@@ -35,7 +35,8 @@ class VaultViewModel @Inject constructor(
                     releaseDate = entity.releaseDate,
                     genres = entity.genres,
                     platforms = entity.platforms,
-                    summary = entity.summary
+                    summary = entity.summary,
+                    steamId = entity.steamId
                 )
             }
         }
