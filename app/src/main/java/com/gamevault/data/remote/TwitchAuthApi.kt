@@ -1,6 +1,6 @@
 package com.gamevault.data.remote
 
-import com.gamevault.domain.model.TwitchToken
+import com.gamevault.data.remote.model.TwitchToken
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.POST

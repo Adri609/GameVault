@@ -145,7 +145,8 @@ class IgdbRepository {
 
             val queryText = """
                 search "$query";
-                fields id, name, cover.image_id, rating, first_release_date, genres.name, platforms.name, summary;
+                fields id, name, cover.image_id, rating, first_release_date, genres.name, 
+                platforms.name, summary;
                 where version_parent = null & cover != null;
                 limit 20;
             """.trimIndent()
@@ -183,7 +184,10 @@ class IgdbRepository {
             val authHeader = "Bearer $token"
 
             val queryText = """
-                fields id, name, cover.image_id, rating, first_release_date, genres.name, platforms.name, summary;
+                fields id, name, cover.image_id, rating, first_release_date, 
+                genres.name, platforms.name, summary, 
+                external_games.uid, external_games.category,
+                websites.category, websites.url;
                 where id = $gameId;
             """.trimIndent()
 
@@ -196,6 +200,20 @@ class IgdbRepository {
             )
 
             response.firstOrNull()?.let { apiGame ->
+
+                var steamAppId = apiGame.externalGames?.find { it.category == 1 }?.uid
+
+                if (steamAppId == null) {
+                    val steamUrl = apiGame.websites?.find { it.category == 13 }?.url
+                    if (steamUrl != null) {
+                        val regex = """app/(\d+)""".toRegex()
+                        val match = regex.find(steamUrl)
+                        steamAppId = match?.groupValues?.get(1)
+                    }
+                }
+
+                android.util.Log.d("GameVault_Debug", "Juego: ${apiGame.name} | Steam ID Final: $steamAppId")
+
                 Game(
                     id = apiGame.id,
                     name = apiGame.name,
@@ -204,7 +222,8 @@ class IgdbRepository {
                     releaseDate = apiGame.firstReleasedDate,
                     genres = apiGame.genres?.map { it.name } ?: emptyList(),
                     platforms = apiGame.platforms?.map { it.name } ?: emptyList(),
-                    summary = apiGame.summary
+                    summary = apiGame.summary,
+                    steamId = steamAppId
                 )
             }
         } catch (e: Exception) {

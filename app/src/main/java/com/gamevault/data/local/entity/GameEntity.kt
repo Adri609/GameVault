@@ -25,5 +25,6 @@ data class GameEntity(
     val genres: List<String>,
     val platforms: List<String>,
     val dateAdded: Long = System.currentTimeMillis(),
-    val summary : String?
+    val summary : String?,
+    val steamId: String?
 )
