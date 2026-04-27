@@ -9,7 +9,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.gamevault.ui.components.GameCarousel // Tu nuevo componente reutilizable
+import com.gamevault.ui.navigation.Routes
 
 /**
  * Pantalla de inicio que muestra diferentes categorías de juegos (Populares, Lanzamientos, Esperados).
@@ -17,6 +19,7 @@ import com.gamevault.ui.components.GameCarousel // Tu nuevo componente reutiliza
  */
 @Composable
 fun HomeScreen(
+    navController: NavController,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val popularGames by viewModel.popularGames.collectAsState()
@@ -33,6 +36,9 @@ fun HomeScreen(
         GameCarousel(
             title = "Juegos Populares",
             games = popularGames,
+            onGameClick = { game ->
+                navController.navigate(Routes.GameDetail.createRoute(game.id))
+            },
             onGameAddClick = { game -> viewModel.addToVault(game) }
         )
 
@@ -42,6 +48,9 @@ fun HomeScreen(
         GameCarousel(
             title = "Últimos Lanzamientos",
             games = newReleases,
+            onGameClick = { game ->
+                navController.navigate(Routes.GameDetail.createRoute(game.id))
+            },
             onGameAddClick = { game -> viewModel.addToVault(game) }
         )
 
@@ -51,6 +60,9 @@ fun HomeScreen(
         GameCarousel(
             title = "Más Esperados",
             games = anticipatedGames,
+            onGameClick = { game ->
+                navController.navigate(Routes.GameDetail.createRoute(game.id))
+            },
             onGameAddClick = { game -> viewModel.addToVault(game) },
             showActionButton = false // No mostrar el botón de añadir para esta sección, solo informativa
         )

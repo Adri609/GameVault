@@ -12,15 +12,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.gamevault.ui.components.GameGrid
 import com.gamevault.ui.components.SearchInputField
+import com.gamevault.ui.navigation.Routes
 
 /**
- * Pantalla de búsqueda de videojuegos.
- * Permite buscar juegos por título y añadirlos a la colección personal.
+ * Pantalla de búsqueda que permite encontrar videojuegos por nombre y añadirlos a la bóveda.
  */
 @Composable
 fun SearchScreen(
+    navController: NavController,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -35,41 +37,39 @@ fun SearchScreen(
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        // Campo de entrada para la búsqueda
         SearchInputField(
             query = searchQuery,
             onQueryChange = { viewModel.onQueryChange(it) },
             onSearch = {
                 viewModel.performSearch()
-                focusManager.clearFocus() // Ocultar teclado tras buscar
+                focusManager.clearFocus()
             },
             placeholderText = "Buscar juegos (ej: Elden Ring)...",
             modifier = Modifier.padding(vertical = 16.dp)
         )
 
-        // Gestión de estados de la UI
-        when {
-            isLoading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+        // GESTIÓN DE ESTADOS (Carga, Resultados, Vacío)
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
-            searchResults.isNotEmpty() -> {
-                GameGrid(
-                    games = searchResults,
-                    onActionClick = { game -> viewModel.addToVault(game) },
-                    showActionButtons = true,
-                    contentPadding = PaddingValues(bottom = 16.dp),
-                    modifier = Modifier.fillMaxSize()
+        } else if (searchResults.isNotEmpty()) {
+            GameGrid(
+                games = searchResults,
+                onGameClick = { game ->
+                    navController.navigate(Routes.GameDetail.createRoute(game.id))
+                },
+                onActionClick = { game -> viewModel.addToVault(game) },
+                showActionButtons = true,
+                contentPadding = PaddingValues(bottom = 16.dp),
+                modifier = Modifier.fillMaxSize()
+            )
+        } else if (hasSearched && searchResults.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "No se encontraron resultados para \"$searchQuery\"",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-            hasSearched -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "No se encontraron resultados para \"$searchQuery\"",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
         }
     }

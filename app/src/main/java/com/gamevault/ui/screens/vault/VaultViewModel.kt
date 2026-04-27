@@ -34,7 +34,8 @@ class VaultViewModel @Inject constructor(
                     rating = entity.rating,
                     releaseDate = entity.releaseDate,
                     genres = entity.genres,
-                    platforms = entity.platforms
+                    platforms = entity.platforms,
+                    summary = entity.summary
                 )
             }
         }

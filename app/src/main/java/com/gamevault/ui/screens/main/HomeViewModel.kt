@@ -101,7 +101,8 @@ class HomeViewModel @Inject constructor(
                     game.rating,
                     game.releaseDate,
                     game.genres,
-                    game.platforms
+                    game.platforms,
+                    summary = game.summary
                 )
 
                 gameDao.insertGame(entity)

@@ -29,7 +29,9 @@ object DatabaseModule {
             context,
             GameVaultDatabase::class.java,
             "game_vault_db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     /**

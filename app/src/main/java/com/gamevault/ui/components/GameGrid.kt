@@ -39,6 +39,7 @@ fun GameGrid(
         items(games, key = { it.id }) { game ->
             GameCard(
                 game = game,
+                onGameClick = { onGameClick(it) },
                 onAddClick = onActionClick,
                 showActionButton = showActionButtons,
                 modifier = Modifier.fillMaxWidth()

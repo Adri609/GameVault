@@ -13,7 +13,8 @@ data class GameDto(
     @SerializedName("first_release_date")
     val firstReleasedDate: Long?,
     val genres: List<GenreDto>?,
-    val platforms: List<PlatformDto>?
+    val platforms: List<PlatformDto>?,
+    val summary: String?
 ) {
     /**
      * Construye la URL completa de la imagen de portada usando el image_id de IGDB.

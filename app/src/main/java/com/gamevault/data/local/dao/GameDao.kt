@@ -29,12 +29,13 @@ interface GameDao {
      * Elimina un juego por su ID.
      */
     @Query("DELETE FROM favorite_games WHERE id = :gameId")
-    suspend fun deleteGame(gameId: Long)
+    suspend fun deleteGameById(gameId: Long)
 
     /**
      * Comprueba si un juego ya está en la bóveda.
-     * Esto nos servirá para cambiar el icono de "+" por un "Check" en la Home.
      */
     @Query("SELECT EXISTS(SELECT * FROM favorite_games WHERE id = :gameId)")
-    suspend fun isGameInVault(gameId: Long): Boolean
+    fun isGameSaved(gameId: Long): kotlinx.coroutines.flow.Flow<Boolean>
+
+
 }

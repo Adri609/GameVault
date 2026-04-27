@@ -13,11 +13,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.gamevault.domain.model.Game
 
+/**
+ * Fila horizontal desplazable que muestra una colección de juegos bajo un título.
+ */
 @Composable
 fun GameCarousel(
     modifier: Modifier = Modifier,
     title: String,
     games: List<Game>,
+    onGameClick: (Game) -> Unit = {},
     onGameAddClick: (Game) -> Unit = {},
     showActionButton: Boolean = true
 ) {
@@ -45,6 +49,7 @@ fun GameCarousel(
                 items(games, key = { it.id }) { game ->
                     GameCard(
                         game = game,
+                        onGameClick = { onGameClick(it) },
                         onAddClick = { onGameAddClick(it) },
                         showActionButton = showActionButton
                     )

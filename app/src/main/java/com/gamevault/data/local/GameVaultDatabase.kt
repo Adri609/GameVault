@@ -13,7 +13,7 @@ import com.gamevault.data.local.entity.GameEntity
  */
 @Database(
     entities = [GameEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(StringListConverter::class)
