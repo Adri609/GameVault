@@ -15,5 +15,8 @@ sealed class Routes(val route: String) {
     object Search : Routes("search_screen")
     object Vault : Routes("vault_screen")
 
-
+    object GameDetail : Routes("game_detail/{gameId}") {
+        // Función de ayuda para construir la ruta cuando hagamos click en las tarjetas
+        fun createRoute(gameId: Long) = "game_detail/$gameId"
+    }
 }

@@ -35,11 +35,13 @@ import com.gamevault.domain.model.Game
 fun GameCard(
     modifier: Modifier = Modifier,
     game: Game,
+    onGameClick: (Game) -> Unit = {},
     onAddClick: (Game) -> Unit = {},
     showActionButton: Boolean = true,
 ) {
     Card(
         modifier = modifier.width(140.dp),
+        onClick = { onGameClick(game) },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)

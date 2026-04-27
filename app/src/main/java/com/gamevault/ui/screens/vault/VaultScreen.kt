@@ -12,7 +12,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.gamevault.ui.components.GameGrid
+import com.gamevault.ui.navigation.Routes
 
 /**
  * Pantalla que muestra la colección personal de juegos del usuario (La Bóveda).
@@ -20,6 +22,7 @@ import com.gamevault.ui.components.GameGrid
  */
 @Composable
 fun VaultScreen(
+    navController: NavController,
     viewModel: VaultViewModel = hiltViewModel()
 ) {
     val savedGames by viewModel.savedGames.collectAsState()
@@ -53,6 +56,9 @@ fun VaultScreen(
             // Rejilla de juegos guardados
             GameGrid(
                 games = savedGames,
+                onGameClick = { game ->
+                    navController.navigate(Routes.GameDetail.createRoute(game.id))
+                },
                 contentPadding = PaddingValues(bottom = 16.dp),
                 modifier = Modifier.fillMaxSize()
             )
