@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
@@ -52,18 +53,40 @@ fun GameDetailScreen(
 
     val currentGame = game ?: return
 
+    // Lógica para saber si el juego es un lanzamiento futuro
+    val currentTimestamp = System.currentTimeMillis() / 1000
+    val isUnreleased = currentGame.releaseDate != null && currentGame.releaseDate > currentTimestamp
+
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
+            ExtendedFloatingActionButton(
                 onClick = { viewModel.toggleVaultState() },
                 containerColor = if (isSaved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = if (isSaved) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-            ) {
-                Icon(
-                    imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (isSaved) "Quitar de la bóveda" else "Añadir a la bóveda"
-                )
-            }
+                contentColor = if (isSaved) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                icon = {
+                    Icon(
+                        imageVector = if (isSaved) {
+                            Icons.Default.Favorite
+                        } else if (isUnreleased) {
+                            Icons.Default.DateRange // Icono de calendario para los no lanzados
+                        } else {
+                            Icons.Default.FavoriteBorder
+                        },
+                        contentDescription = null
+                    )
+                },
+                text = {
+                    Text(
+                        text = if (isSaved) {
+                            "Guardado"
+                        } else if (isUnreleased) {
+                            "A Deseados"
+                        } else {
+                            "A la Bóveda"
+                        }
+                    )
+                }
+            )
         }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
@@ -78,15 +101,9 @@ fun GameDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp)
             ) {
-                // Botón Atrás
-                IconButton(
-                    onClick = { navController.popBackStack() },
-                    modifier = Modifier.padding(top = 24.dp, bottom = 16.dp)
-                ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", tint = Color.White)
-                }
+                Spacer(modifier = Modifier.height(80.dp))
 
                 // Header Principal
                 Row(
@@ -187,6 +204,22 @@ fun GameDetailScreen(
                 }
 
                 Spacer(modifier = Modifier.height(100.dp))
+            }
+
+            FilledIconButton(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier
+                    .padding(start = 16.dp, top = 24.dp)
+                    .align(Alignment.TopStart),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f), // Semitransparente
+                    contentColor = Color.White
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Volver atrás"
+                )
             }
         }
     }
