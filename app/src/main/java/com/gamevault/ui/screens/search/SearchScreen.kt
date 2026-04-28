@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -13,6 +14,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.gamevault.domain.util.Resource
 import com.gamevault.ui.components.GameGrid
 import com.gamevault.ui.components.SearchInputField
 import com.gamevault.ui.navigation.Routes
@@ -25,11 +27,7 @@ fun SearchScreen(
     navController: NavController,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val searchResults by viewModel.searchResults.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val hasSearched by viewModel.hasSearched.collectAsState()
-
+    val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current
 
     Column(
@@ -38,7 +36,7 @@ fun SearchScreen(
             .padding(horizontal = 16.dp)
     ) {
         SearchInputField(
-            query = searchQuery,
+            query = state.query,
             onQueryChange = { viewModel.onQueryChange(it) },
             onSearch = {
                 viewModel.performSearch()
@@ -48,28 +46,53 @@ fun SearchScreen(
             modifier = Modifier.padding(vertical = 16.dp)
         )
 
-        // GESTIÓN DE ESTADOS (Carga, Resultados, Vacío)
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        // GESTIÓN DE ESTADOS
+        when (val results = state.results) {
+            is Resource.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-        } else if (searchResults.isNotEmpty()) {
-            GameGrid(
-                games = searchResults,
-                onGameClick = { game ->
-                    navController.navigate(Routes.GameDetail.createRoute(game.id))
-                },
-                onActionClick = { game -> viewModel.addToVault(game) },
-                showActionButtons = true,
-                contentPadding = PaddingValues(bottom = 16.dp),
-                modifier = Modifier.fillMaxSize()
-            )
-        } else if (hasSearched && searchResults.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "No se encontraron resultados para \"$searchQuery\"",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            is Resource.Error -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = results.message ?: "Error", color = MaterialTheme.colorScheme.error)
+                        TextButton(onClick = { viewModel.performSearch() }) {
+                            Text("Reintentar")
+                        }
+                    }
+                }
+            }
+            is Resource.Success -> {
+                val games = results.data ?: emptyList()
+                if (games.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "No se encontraron resultados para \"${state.query}\"",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    GameGrid(
+                        games = games,
+                        onGameClick = { game ->
+                            navController.navigate(Routes.GameDetail.createRoute(game.id))
+                        },
+                        onActionClick = { game -> viewModel.toggleVault(game) },
+                        showActionButtons = true,
+                        contentPadding = PaddingValues(bottom = 16.dp),
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+            null -> {
+                // Estado inicial: no se ha buscado nada
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "Escribe el nombre de un juego para empezar",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
