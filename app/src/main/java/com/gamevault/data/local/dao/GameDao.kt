@@ -13,29 +13,32 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface GameDao {
     /**
-     * Obtiene todos los juegos de la bóveda, emitiendo actualizaciones en tiempo real.
-     * Ordenado por 'dateAdded' para que los últimos que se añadan salgan primero.
+     * Obtiene todos los juegos de la bóveda para un usuario específico.
      */
-    @Query("SELECT * FROM favorite_games ORDER BY dateAdded DESC")
-    fun getAllFavoriteGames(): Flow<List<GameEntity>>
+    @Query("SELECT * FROM favorite_games WHERE userId = :userId ORDER BY dateAdded DESC")
+    fun getAllFavoriteGames(userId: String): Flow<List<GameEntity>>
 
     /**
-     * Inserta un nuevo juego. Si ya existe, lo actualiza (útil para refrescar ratings).
+     * Inserta o actualiza un juego.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGame(game: GameEntity)
 
     /**
-     * Elimina un juego por su ID.
+     * Elimina un juego de la bóveda de un usuario específico.
      */
-    @Query("DELETE FROM favorite_games WHERE id = :gameId")
-    suspend fun deleteGameById(gameId: Long)
+    @Query("DELETE FROM favorite_games WHERE id = :gameId AND userId = :userId")
+    suspend fun deleteGameById(gameId: Long, userId: String)
 
     /**
-     * Comprueba si un juego ya está en la bóveda.
+     * Comprueba si un juego ya está en la bóveda de un usuario específico.
      */
-    @Query("SELECT EXISTS(SELECT * FROM favorite_games WHERE id = :gameId)")
-    fun isGameSaved(gameId: Long): kotlinx.coroutines.flow.Flow<Boolean>
+    @Query("SELECT EXISTS(SELECT * FROM favorite_games WHERE id = :gameId AND userId = :userId)")
+    fun isGameSaved(gameId: Long, userId: String): Flow<Boolean>
 
-
+    /**
+     * Obtiene los juegos que no han sido sincronizados con la nube para un usuario.
+     */
+    @Query("SELECT * FROM favorite_games WHERE userId = :userId AND isSynced = 0")
+    suspend fun getUnsyncedGames(userId: String): List<GameEntity>
 }

@@ -1,40 +1,24 @@
 package com.gamevault.data.repository
 
-import com.gamevault.BuildConfig
-import com.gamevault.di.RetrofitClient
+import com.gamevault.data.remote.IgdbApi
 import com.gamevault.domain.model.Game
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Repositorio encargado de gestionar la comunicación con la API de IGDB.
  */
-class IgdbRepository {
-
-    private var currentToken: String? = null
-
-    /**
-     * Obtiene un token de acceso válido de Twitch. Si ya existe uno en memoria, lo reutiliza.
-     */
-    private suspend fun getValidToken(): String {
-        currentToken?.let { return it }
-
-        val response = RetrofitClient.twitchAuthApi.getAccessToken(
-            clientId = BuildConfig.IGDB_CLIENT_ID,
-            clientSecret = BuildConfig.IGDB_CLIENT_SECRET
-        )
-
-        currentToken = response.accessToken
-        return response.accessToken
-    }
+@Singleton
+class IgdbRepository @Inject constructor(
+    private val igdbApi: IgdbApi
+) {
 
     /**
      * Obtiene una lista de juegos populares lanzados en los últimos 6 meses.
      */
     suspend fun getPopularGames(): List<Game> {
-        val token = getValidToken()
-        val authHeader = "Bearer $token"
-
         val currentTimestamp = System.currentTimeMillis() / 1000
         val sixMonthsAgo = currentTimestamp - (180 * 24 * 60 * 60)
 
@@ -47,11 +31,7 @@ class IgdbRepository {
 
         val requestBody = queryText.toRequestBody("text/plain".toMediaTypeOrNull())
 
-        return RetrofitClient.igdbApi.getGames(
-            clientId = BuildConfig.IGDB_CLIENT_ID,
-            authorization = authHeader,
-            query = requestBody
-        ).map { apiGame ->
+        return igdbApi.getGames(requestBody).map { apiGame ->
             Game(
                 id = apiGame.id,
                 name = apiGame.name,
@@ -69,9 +49,6 @@ class IgdbRepository {
      * Obtiene los lanzamientos más recientes con un mínimo de valoraciones.
      */
     suspend fun getNewReleases(): List<Game> {
-        val token = getValidToken()
-        val authHeader = "Bearer $token"
-
         val queryText = """
             fields id, name, cover.image_id, rating, first_release_date, genres.name, platforms.name, summary;
             where rating_count > 10 & cover != null;
@@ -81,11 +58,7 @@ class IgdbRepository {
 
         val requestBody = queryText.toRequestBody("text/plain".toMediaTypeOrNull())
 
-        return RetrofitClient.igdbApi.getGames(
-            clientId = BuildConfig.IGDB_CLIENT_ID,
-            authorization = authHeader,
-            query = requestBody
-        ).map { apiGame ->
+        return igdbApi.getGames(requestBody).map { apiGame ->
             Game(
                 id = apiGame.id,
                 name = apiGame.name,
@@ -103,9 +76,6 @@ class IgdbRepository {
      * Obtiene juegos futuros con altas expectativas (hypes).
      */
     suspend fun getAnticipatedGames(): List<Game> {
-        val token = getValidToken()
-        val authHeader = "Bearer $token"
-
         val currentTimestamp = System.currentTimeMillis() / 1000
 
         val queryText = """
@@ -117,11 +87,7 @@ class IgdbRepository {
 
         val requestBody = queryText.toRequestBody("text/plain".toMediaTypeOrNull())
 
-        return RetrofitClient.igdbApi.getGames(
-            clientId = BuildConfig.IGDB_CLIENT_ID,
-            authorization = authHeader,
-            query = requestBody
-        ).map { apiGame ->
+        return igdbApi.getGames(requestBody).map { apiGame ->
             Game(
                 id = apiGame.id,
                 name = apiGame.name,
@@ -140,9 +106,6 @@ class IgdbRepository {
      */
     suspend fun searchGames(query: String): List<Game> {
         return try {
-            val token = getValidToken()
-            val authHeader = "Bearer $token"
-
             val queryText = """
                 search "$query";
                 fields id, name, cover.image_id, rating, first_release_date, genres.name, 
@@ -153,11 +116,7 @@ class IgdbRepository {
 
             val requestBody = queryText.toRequestBody("text/plain".toMediaTypeOrNull())
 
-            RetrofitClient.igdbApi.getGames(
-                clientId = BuildConfig.IGDB_CLIENT_ID,
-                authorization = authHeader,
-                query = requestBody
-            ).map { apiGame ->
+            igdbApi.getGames(requestBody).map { apiGame ->
                 Game(
                     id = apiGame.id,
                     name = apiGame.name,
@@ -180,9 +139,6 @@ class IgdbRepository {
      */
     suspend fun getGameDetails(gameId: Long): Game? {
         return try {
-            val token = getValidToken()
-            val authHeader = "Bearer $token"
-
             val queryText = """
                 fields id, name, cover.image_id, rating, first_release_date, 
                 genres.name, platforms.name, summary, 
@@ -193,17 +149,9 @@ class IgdbRepository {
 
             val requestBody = queryText.toRequestBody("text/plain".toMediaTypeOrNull())
 
-            val response = RetrofitClient.igdbApi.getGames(
-                clientId = BuildConfig.IGDB_CLIENT_ID,
-                authorization = authHeader,
-                query = requestBody
-            )
+            val response = igdbApi.getGames(requestBody)
 
             response.firstOrNull()?.let { apiGame ->
-
-                android.util.Log.d("GameVault_Debug", "External Games crudos: ${apiGame.externalGames}")
-                android.util.Log.d("GameVault_Debug", "Websites crudos: ${apiGame.websites}")
-
                 val steamUrl = apiGame.websites?.find {
                     it.url?.contains("steampowered.com", ignoreCase = true) == true
                 }?.url
@@ -211,7 +159,6 @@ class IgdbRepository {
                 var steamAppId: String? = null
 
                 if (steamUrl != null) {
-                    // Extraemos solo el número de la URL
                     val regex = """app/(\d+)""".toRegex()
                     val match = regex.find(steamUrl)
                     steamAppId = match?.groupValues?.get(1)
@@ -220,8 +167,6 @@ class IgdbRepository {
                 if (steamAppId == null) {
                     steamAppId = apiGame.externalGames?.find { it.category == 1 }?.uid
                 }
-
-                android.util.Log.d("GameVault_Debug", "Juego: ${apiGame.name} | Steam ID Final: $steamAppId")
 
                 Game(
                     id = apiGame.id,

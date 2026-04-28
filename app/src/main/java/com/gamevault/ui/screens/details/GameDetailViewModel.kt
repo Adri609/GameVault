@@ -4,134 +4,95 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gamevault.data.local.dao.GameDao
-import com.gamevault.data.local.entity.GameEntity
-import com.gamevault.data.remote.model.FirebaseGameDto
-import com.gamevault.data.repository.FirestoreRepository
 import com.gamevault.data.repository.IgdbRepository
 import com.gamevault.data.repository.SteamRepository
 import com.gamevault.domain.model.Achievement
 import com.gamevault.domain.model.Game
+import com.gamevault.domain.usecase.ToggleVaultUseCase
+import com.gamevault.domain.util.Resource
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+data class GameDetailState(
+    val game: Resource<Game> = Resource.Loading(),
+    val achievements: List<Achievement> = emptyList(),
+    val showHiddenAchievements: Boolean = false
+)
 
 /**
  * ViewModel que gestiona la obtención de detalles de un juego y su estado de persistencia local.
  */
 @HiltViewModel
 class GameDetailViewModel @Inject constructor(
-
+    private val igdbRepository: IgdbRepository,
+    private val steamRepository: SteamRepository,
     private val gameDao: GameDao,
-    private val firestoreRepository: FirestoreRepository,
+    private val toggleVaultUseCase: ToggleVaultUseCase,
+    private val auth: FirebaseAuth,
     savedStateHandle: SavedStateHandle
-
 ) : ViewModel() {
-    private val repository = IgdbRepository()
-    private val steamRepository = SteamRepository()
 
-    // Extraer el id directamente de los argumentos de navegación
     private val gameId: Long = checkNotNull(savedStateHandle["gameId"])
 
-    // Estado del juego
-    private val _game = MutableStateFlow<Game?>(null)
-    val game: StateFlow<Game?> = _game.asStateFlow()
+    private val _state = MutableStateFlow(GameDetailState())
+    val state: StateFlow<GameDetailState> = _state.asStateFlow()
 
-    // Estado de carga
-    private val _isLoading = MutableStateFlow(true)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    // Lista de logros
-    private val _achievements = MutableStateFlow<List<Achievement>>(emptyList())
-    val achievements: StateFlow<List<Achievement>> = _achievements.asStateFlow()
-
-    // Estado para controlar si se quiere mostrar los logros ocultos
-    private val _showHiddenAchievements = MutableStateFlow(false)
-    val showHiddenAchievements: StateFlow<Boolean> = _showHiddenAchievements.asStateFlow()
-
-    // Función para alternar la visibilidad
-    fun toggleHiddenAchievements() {
-        _showHiddenAchievements.value = !_showHiddenAchievements.value
-    }
-
-    // Con room se puede observar directamente si el juego está en la bóveda
-    val isSaved: StateFlow<Boolean> = gameDao.isGameSaved(gameId)
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false // Si en algún momento se guarda o se borra, cambiará esta variable automáticamente
-        )
+    // Observar si el juego está guardado para el usuario actual
+    val isSaved: StateFlow<Boolean> = auth.currentUser?.uid?.let { userId ->
+        gameDao.isGameSaved(gameId, userId)
+    }?.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = false
+    ) ?: MutableStateFlow(false)
 
     init {
-        // Empezar a descargar los datos en cuanto se crea el ViewModel
         fetchGameDetails()
     }
 
     private fun fetchGameDetails() {
         viewModelScope.launch {
-            _isLoading.value = true
+            _state.update { it.copy(game = Resource.Loading()) }
 
-            // Hacer la llamada
-            val fetchedGame = repository.getGameDetails(gameId)
-
-            // Asignar el resultado al estado
-            _game.value = fetchedGame
-
-            // Si tiene ID de Steam, carga los logros
-            fetchedGame?.steamId?.let { appId ->
-                _achievements.value = steamRepository.getGameAchievements(appId)
+            try {
+                val fetchedGame = igdbRepository.getGameDetails(gameId)
+                if (fetchedGame != null) {
+                    _state.update { it.copy(game = Resource.Success(fetchedGame)) }
+                    
+                    fetchedGame.steamId?.let { appId ->
+                        val achievements = steamRepository.getGameAchievements(appId)
+                        _state.update { it.copy(achievements = achievements) }
+                    }
+                } else {
+                    _state.update { it.copy(game = Resource.Error("No se encontró el juego")) }
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(game = Resource.Error("Error al cargar los detalles")) }
             }
-
-            _isLoading.value = false
         }
     }
 
-    /**
-     * Alterna el estado del juego en la bóveda:
-     * Si ya estaba guardado, lo elimina. Si no lo estaba, lo añade.
-     */
+    fun toggleHiddenAchievements() {
+        _state.update { it.copy(showHiddenAchievements = !it.showHiddenAchievements) }
+    }
 
     fun toggleVaultState() {
-        val currentGame = _game.value ?: return
-
+        val currentGame = _state.value.game.data ?: return
         viewModelScope.launch {
-            if (isSaved.value) {
-                // Borrarlo si estaba en la bóveda en local
-                gameDao.deleteGameById(currentGame.id)
-
-                // Borrarlo en remoto
-                firestoreRepository.deleteGame(currentGame.id)
-            } else {
-                // Guardar en local
-                val entity = GameEntity(
-                    id = currentGame.id,
-                    name = currentGame.name,
-                    coverUrl = currentGame.coverUrl,
-                    rating = currentGame.rating,
-                    releaseDate = currentGame.releaseDate,
-                    genres = currentGame.genres,
-                    platforms = currentGame.platforms,
-                    summary = currentGame.summary,
-                    steamId = currentGame.steamId
-                )
-                gameDao.insertGame(entity)
-
-                // Preparar el paquete ligero y subirlo a la nube
-                val firebaseGame = FirebaseGameDto(
-                    id = currentGame.id,
-                    name = currentGame.name,
-                    coverUrl = currentGame.coverUrl,
-                    releaseDate = currentGame.releaseDate,
-                    steamId = currentGame.steamId,
-                    rating = currentGame.rating
-                )
-
-                firestoreRepository.saveGame(firebaseGame).onFailure { error ->
-                    android.util.Log.e("GameVault_Cloud", "Error subiendo a la nube: ${error.message}")                }
+            try {
+                toggleVaultUseCase(currentGame)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }

@@ -2,18 +2,24 @@ package com.gamevault.ui.screens.main
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.gamevault.data.local.dao.GameDao
-import com.gamevault.data.local.entity.GameEntity
-import com.gamevault.data.remote.model.FirebaseGameDto
-import com.gamevault.data.repository.FirestoreRepository
 import com.gamevault.data.repository.IgdbRepository
 import com.gamevault.domain.model.Game
+import com.gamevault.domain.usecase.SyncVaultUseCase
+import com.gamevault.domain.usecase.ToggleVaultUseCase
+import com.gamevault.domain.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+data class HomeState(
+    val popularGames: Resource<List<Game>> = Resource.Loading(),
+    val newReleases: Resource<List<Game>> = Resource.Loading(),
+    val anticipatedGames: Resource<List<Game>> = Resource.Loading()
+)
 
 /**
  * ViewModel que gestiona los datos de la pantalla de inicio.
@@ -21,111 +27,71 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val firestoreRepository: FirestoreRepository,
-    private val gameDao: GameDao
+    private val igdbRepository: IgdbRepository,
+    private val toggleVaultUseCase: ToggleVaultUseCase,
+    private val syncVaultUseCase: SyncVaultUseCase
 ) : ViewModel() {
 
-    private val repository = IgdbRepository()
-
-    // Estado para Populares
-    private val _popularGames = MutableStateFlow<List<Game>>(emptyList())
-    val popularGames: StateFlow<List<Game>> = _popularGames.asStateFlow()
-
-    // Estado para Nuevos Lanzamientos
-    private val _newReleases = MutableStateFlow<List<Game>>(emptyList())
-    val newReleases: StateFlow<List<Game>> = _newReleases.asStateFlow()
-
-    // Estado para los juegos más esperados
-    private val _anticipatedGames = MutableStateFlow<List<Game>>(emptyList())
-    val anticipatedGames: StateFlow<List<Game>> = _anticipatedGames.asStateFlow()
+    private val _state = MutableStateFlow(HomeState())
+    val state: StateFlow<HomeState> = _state.asStateFlow()
 
     init {
-        // Lanzar todas las peticiones a la vez al inicializar
+        fetchAllCategories()
+        syncVault()
+    }
+
+    private fun syncVault() {
+        viewModelScope.launch {
+            syncVaultUseCase()
+        }
+    }
+
+    fun fetchAllCategories() {
         fetchPopularGames()
         fetchNewReleases()
         fetchAnticipatedGames()
     }
 
-    /**
-     * Solicita los juegos populares al repositorio.
-     */
     private fun fetchPopularGames() {
         viewModelScope.launch {
+            _state.update { it.copy(popularGames = Resource.Loading()) }
             try {
-                _popularGames.value = repository.getPopularGames()
+                val games = igdbRepository.getPopularGames()
+                _state.update { it.copy(popularGames = Resource.Success(games)) }
             } catch (e: Exception) {
-                e.printStackTrace()
+                _state.update { it.copy(popularGames = Resource.Error("No se pudieron cargar los juegos populares")) }
             }
         }
     }
 
-    /**
-     * Solicita los nuevos lanzamientos al repositorio.
-     */
     private fun fetchNewReleases() {
         viewModelScope.launch {
+            _state.update { it.copy(newReleases = Resource.Loading()) }
             try {
-                _newReleases.value = repository.getNewReleases()
+                val games = igdbRepository.getNewReleases()
+                _state.update { it.copy(newReleases = Resource.Success(games)) }
             } catch (e: Exception) {
-                e.printStackTrace()
+                _state.update { it.copy(newReleases = Resource.Error("No se pudieron cargar los nuevos lanzamientos")) }
             }
         }
     }
 
-    /**
-     * Solicita los juegos más esperados al repositorio.
-     */
     private fun fetchAnticipatedGames() {
         viewModelScope.launch {
+            _state.update { it.copy(anticipatedGames = Resource.Loading()) }
             try {
-                _anticipatedGames.value = repository.getAnticipatedGames()
+                val games = igdbRepository.getAnticipatedGames()
+                _state.update { it.copy(anticipatedGames = Resource.Success(games)) }
             } catch (e: Exception) {
-                // Captura específica de errores de red para depuración
-                if (e is retrofit2.HttpException) {
-                    android.util.Log.e(
-                        "GameVaultError",
-                        "Error Anticipated: ${e.response()?.errorBody()?.string()}"
-                    )
-                }
-                e.printStackTrace()
+                _state.update { it.copy(anticipatedGames = Resource.Error("No se pudieron cargar los juegos más esperados")) }
             }
         }
     }
 
-    fun addToVault(game: Game) {
+    fun toggleVault(game: Game) {
         viewModelScope.launch {
             try {
-                // Transformar el modelo de dominio a la entidad de la bdd
-
-                val entity = GameEntity(
-                    game.id,
-                    game.name,
-                    game.coverUrl,
-                    game.rating,
-                    game.releaseDate,
-                    game.genres,
-                    game.platforms,
-                    summary = game.summary,
-                    steamId = game.steamId
-                )
-
-                gameDao.insertGame(entity)
-                android.util.Log.d("Vault", "¡${game.name} guardado en la bóveda!")
-
-                // Subir al a nube en remoto
-                val firebaseGame = FirebaseGameDto(
-                    id = game.id,
-                    name = game.name,
-                    coverUrl = game.coverUrl,
-                    releaseDate = game.releaseDate,
-                    steamId = game.steamId,
-                    rating = game.rating
-                )
-
-                firestoreRepository.saveGame(firebaseGame).onFailure { error ->
-                    android.util.Log.e("GameVault_Cloud", "Error subiendo ${game.name} a la nube: ${error.message}")
-                }
-
+                toggleVaultUseCase(game)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

@@ -2,85 +2,71 @@ package com.gamevault.ui.screens.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.gamevault.data.local.dao.GameDao
-import com.gamevault.data.local.entity.GameEntity
 import com.gamevault.data.repository.IgdbRepository
 import com.gamevault.domain.model.Game
+import com.gamevault.domain.usecase.ToggleVaultUseCase
+import com.gamevault.domain.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+data class SearchState(
+    val query: String = "",
+    val results: Resource<List<Game>>? = null // null significa que aún no se ha buscado nada
+)
 
 /**
  * ViewModel que gestiona la lógica de búsqueda de videojuegos.
  */
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val gameDao: GameDao
+    private val igdbRepository: IgdbRepository,
+    private val toggleVaultUseCase: ToggleVaultUseCase
 ) : ViewModel() {
 
-    private val repository = IgdbRepository()
-
-    // Estado del texto de búsqueda ingresado por el usuario
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
-
-    // Lista de resultados obtenidos de la API
-    private val _searchResults = MutableStateFlow<List<Game>>(emptyList())
-    val searchResults: StateFlow<List<Game>> = _searchResults.asStateFlow()
-
-    // Controla la visibilidad del indicador de carga
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    // Indica si se ha completado al menos una búsqueda
-    private val _hasSearched = MutableStateFlow(false)
-    val hasSearched: StateFlow<Boolean> = _hasSearched.asStateFlow()
+    private val _state = MutableStateFlow(SearchState())
+    val state: StateFlow<SearchState> = _state.asStateFlow()
 
     /**
      * Actualiza la consulta de búsqueda actual.
      */
     fun onQueryChange(newQuery: String) {
-        _searchQuery.value = newQuery
-        _hasSearched.value = false
+        _state.update { it.copy(query = newQuery) }
     }
 
     /**
      * Ejecuta la búsqueda de juegos en el repositorio.
      */
     fun performSearch() {
-        if (_searchQuery.value.trim().isEmpty()) return
+        val currentQuery = _state.value.query
+        if (currentQuery.trim().isEmpty()) return
 
         viewModelScope.launch {
-            _isLoading.value = true
-            _hasSearched.value = false
+            _state.update { it.copy(results = Resource.Loading()) }
 
-            _searchResults.value = repository.searchGames(_searchQuery.value)
-
-            _isLoading.value = false
-            _hasSearched.value = true
+            try {
+                val games = igdbRepository.searchGames(currentQuery)
+                _state.update { it.copy(results = Resource.Success(games)) }
+            } catch (e: Exception) {
+                _state.update { it.copy(results = Resource.Error("Error al buscar juegos")) }
+            }
         }
     }
 
     /**
-     * Guarda un juego seleccionado en la base de datos local.
+     * Gestiona el estado del juego en la bóveda (añadir/eliminar).
      */
-    fun addToVault(game: Game) {
+    fun toggleVault(game: Game) {
         viewModelScope.launch {
-            val entity = GameEntity(
-                id = game.id,
-                name = game.name,
-                coverUrl = game.coverUrl,
-                rating = game.rating,
-                releaseDate = game.releaseDate,
-                genres = game.genres,
-                platforms = game.platforms,
-                summary = game.summary,
-                steamId = game.steamId
-            )
-            gameDao.insertGame(entity)
+            try {
+                toggleVaultUseCase(game)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }

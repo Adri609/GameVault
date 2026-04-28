@@ -8,23 +8,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.gamevault.ui.components.GameCarousel // Tu nuevo componente reutilizable
+import com.gamevault.ui.components.GameCarousel
 import com.gamevault.ui.navigation.Routes
 
 /**
  * Pantalla de inicio que muestra diferentes categorías de juegos (Populares, Lanzamientos, Esperados).
- * @param viewModel ViewModel encargado de gestionar el estado de los juegos.
  */
 @Composable
 fun HomeScreen(
     navController: NavController,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
-    val popularGames by viewModel.popularGames.collectAsState()
-    val newReleases by viewModel.newReleases.collectAsState()
-    val anticipatedGames by viewModel.anticipatedGames.collectAsState()
+    val state by viewModel.state.collectAsState()
 
     Column(
         modifier = Modifier
@@ -35,11 +32,12 @@ fun HomeScreen(
         // Juegos Populares
         GameCarousel(
             title = "Juegos Populares",
-            games = popularGames,
+            state = state.popularGames,
             onGameClick = { game ->
                 navController.navigate(Routes.GameDetail.createRoute(game.id))
             },
-            onGameAddClick = { game -> viewModel.addToVault(game) }
+            onGameAddClick = { game -> viewModel.toggleVault(game) },
+            onRetry = { viewModel.fetchAllCategories() }
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -47,11 +45,12 @@ fun HomeScreen(
         // Últimos Lanzamientos
         GameCarousel(
             title = "Últimos Lanzamientos",
-            games = newReleases,
+            state = state.newReleases,
             onGameClick = { game ->
                 navController.navigate(Routes.GameDetail.createRoute(game.id))
             },
-            onGameAddClick = { game -> viewModel.addToVault(game) }
+            onGameAddClick = { game -> viewModel.toggleVault(game) },
+            onRetry = { viewModel.fetchAllCategories() }
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -59,12 +58,13 @@ fun HomeScreen(
         // Juegos Más Esperados
         GameCarousel(
             title = "Más Esperados",
-            games = anticipatedGames,
+            state = state.anticipatedGames,
             onGameClick = { game ->
                 navController.navigate(Routes.GameDetail.createRoute(game.id))
             },
-            onGameAddClick = { game -> viewModel.addToVault(game) },
-            showActionButton = false // No mostrar el botón de añadir para esta sección, solo informativa
+            onGameAddClick = { game -> viewModel.toggleVault(game) },
+            onRetry = { viewModel.fetchAllCategories() },
+            showActionButton = false
         )
 
         Spacer(modifier = Modifier.height(24.dp))
