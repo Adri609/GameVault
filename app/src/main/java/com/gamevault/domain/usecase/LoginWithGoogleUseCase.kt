@@ -31,10 +31,12 @@ class LoginWithGoogleUseCase @Inject constructor (
 
             if (firebaseUser != null) {
                 // Crear el modelo de usuario con los datos de la cuenta de Google
+                // Se intenta recuperar la foto de perfil que proporciona Google
                 val newUser = User(
                     id = firebaseUser.uid,
                     email = firebaseUser.email ?: "",
-                    username = firebaseUser.displayName ?: "Usuario de Google"
+                    username = firebaseUser.displayName ?: "Usuario de Google",
+                    profilePictureUrl = firebaseUser.photoUrl?.toString() ?: ""
                 )
                 // Guardar o actualizar la información del usuario en Firestore
                 authRepository.saveUserToFirestore(newUser)

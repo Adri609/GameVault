@@ -109,6 +109,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
 
     // OkHttp (Para las peticiones HTTP)
     implementation(libs.okhttp.core)

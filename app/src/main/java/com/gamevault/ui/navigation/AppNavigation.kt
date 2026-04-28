@@ -33,7 +33,13 @@ fun AppNavigation() {
 
         // Pantalla principal
         composable(Routes.Main.route) {
-            MainScreen()
+            MainScreen(
+                onSignOut = {
+                    navController.navigate(Routes.Register.route) {
+                        popUpTo(Routes.Main.route) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }
