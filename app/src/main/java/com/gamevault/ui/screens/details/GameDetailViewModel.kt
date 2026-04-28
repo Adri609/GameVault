@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gamevault.data.local.dao.GameDao
 import com.gamevault.data.local.entity.GameEntity
+import com.gamevault.data.remote.model.FirebaseGameDto
+import com.gamevault.data.repository.FirestoreRepository
 import com.gamevault.data.repository.IgdbRepository
 import com.gamevault.data.repository.SteamRepository
 import com.gamevault.domain.model.Achievement
@@ -23,8 +25,11 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class GameDetailViewModel @Inject constructor(
+
     private val gameDao: GameDao,
-    savedStateHandle: SavedStateHandle // Hilt inyecta los argumentos de navegación
+    private val firestoreRepository: FirestoreRepository,
+    savedStateHandle: SavedStateHandle
+
 ) : ViewModel() {
     private val repository = IgdbRepository()
     private val steamRepository = SteamRepository()
@@ -95,10 +100,13 @@ class GameDetailViewModel @Inject constructor(
 
         viewModelScope.launch {
             if (isSaved.value) {
-                // Borrarlo si estaba en la bóveda
+                // Borrarlo si estaba en la bóveda en local
                 gameDao.deleteGameById(currentGame.id)
+
+                // Borrarlo en remoto
+                firestoreRepository.deleteGame(currentGame.id)
             } else {
-                // Si no estaba agregarlo
+                // Guardar en local
                 val entity = GameEntity(
                     id = currentGame.id,
                     name = currentGame.name,
@@ -111,6 +119,19 @@ class GameDetailViewModel @Inject constructor(
                     steamId = currentGame.steamId
                 )
                 gameDao.insertGame(entity)
+
+                // Preparar el paquete ligero y subirlo a la nube
+                val firebaseGame = FirebaseGameDto(
+                    id = currentGame.id,
+                    name = currentGame.name,
+                    coverUrl = currentGame.coverUrl,
+                    releaseDate = currentGame.releaseDate,
+                    steamId = currentGame.steamId,
+                    rating = currentGame.rating
+                )
+
+                firestoreRepository.saveGame(firebaseGame).onFailure { error ->
+                    android.util.Log.e("GameVault_Cloud", "Error subiendo a la nube: ${error.message}")                }
             }
         }
     }
