@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gamevault.data.local.dao.GameDao
 import com.gamevault.data.local.entity.GameEntity
+import com.gamevault.data.remote.model.FirebaseGameDto
+import com.gamevault.data.repository.FirestoreRepository
 import com.gamevault.data.repository.IgdbRepository
 import com.gamevault.domain.model.Game
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,6 +21,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+    private val firestoreRepository: FirestoreRepository,
     private val gameDao: GameDao
 ) : ViewModel() {
 
@@ -108,6 +111,21 @@ class HomeViewModel @Inject constructor(
 
                 gameDao.insertGame(entity)
                 android.util.Log.d("Vault", "¡${game.name} guardado en la bóveda!")
+
+                // Subir al a nube en remoto
+                val firebaseGame = FirebaseGameDto(
+                    id = game.id,
+                    name = game.name,
+                    coverUrl = game.coverUrl,
+                    releaseDate = game.releaseDate,
+                    steamId = game.steamId,
+                    rating = game.rating
+                )
+
+                firestoreRepository.saveGame(firebaseGame).onFailure { error ->
+                    android.util.Log.e("GameVault_Cloud", "Error subiendo ${game.name} a la nube: ${error.message}")
+                }
+
             } catch (e: Exception) {
                 e.printStackTrace()
             }
