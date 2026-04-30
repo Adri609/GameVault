@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
@@ -338,14 +339,17 @@ fun SectionTitle(title: String) {
 }
 
 @Composable
-fun SocialIcon(icon: ImageVector, color: Color) {
+fun SocialIcon(painter: Painter, color: Color, onClick: () -> Unit = {}) {
     Surface(
-        modifier = Modifier.size(40.dp),
+        modifier = Modifier
+            .size(40.dp)
+            .clickable { onClick() },
         shape = CircleShape,
         color = color.copy(alpha = 0.1f)
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(icon, null, Modifier.size(24.dp), tint = color)
+            Icon(painter = painter, contentDescription = null, modifier = Modifier.size(24.dp), tint = color)
         }
     }
 }
+

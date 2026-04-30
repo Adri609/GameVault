@@ -1,6 +1,8 @@
 package com.gamevault.ui.screens.profile
 
+import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -9,23 +11,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.gamevault.R
 import com.gamevault.utils.Resource
 import com.gamevault.ui.components.*
 import com.gamevault.ui.navigation.Routes
-import com.gamevault.utils.formatRegistrationDate
 import java.util.Locale
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +39,7 @@ fun ProfileScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     val imageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -133,48 +138,72 @@ fun ProfileScreen(
                     onValueChange = { steamUsername = it },
                     label = { Text("Usuario de Steam") },
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.SportsEsports, null) }
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_steamv2),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 )
                 OutlinedTextField(
                     value = twitchUsername,
                     onValueChange = { twitchUsername = it },
                     label = { Text("Usuario de Twitch") },
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.LiveTv, null) }
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_twitch),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 )
                 OutlinedTextField(
                     value = discordUsername,
                     onValueChange = { discordUsername = it },
                     label = { Text("Usuario de Discord") },
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.Chat, null) }
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_discord),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 )
 
                 Button(
-                    onClick = { 
+                    onClick = {
                         viewModel.updateProfile(
-                            username, 
-                            profilePictureUrl, 
-                            bio, 
+                            username,
+                            profilePictureUrl,
+                            bio,
                             status,
                             steamUsername,
                             twitchUsername,
                             discordUsername
-                        ) 
+                        )
                     },
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
                     shape = RoundedCornerShape(12.dp),
                     enabled = !state.isUpdating
                 ) {
                     if (state.isUpdating) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
                     } else {
                         Text("Guardar Cambios")
                     }
                 }
             } else {
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // Fecha de Registro
                 val userData = (state.user as? Resource.Success)?.data
                 userData?.let { user ->
@@ -187,9 +216,22 @@ fun ProfileScreen(
                 }
 
                 // Estadísticas Rápidas
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatCard(Modifier.weight(1f), "Juegos", state.totalGames.toString(), Icons.Default.Casino)
-                    StatCard(Modifier.weight(1f), "Media", String.format(Locale.getDefault(), "%.1f", state.averageRating / 10), Icons.Default.Star)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    StatCard(
+                        Modifier.weight(1f),
+                        "Juegos",
+                        state.totalGames.toString(),
+                        Icons.Default.Casino
+                    )
+                    StatCard(
+                        Modifier.weight(1f),
+                        "Media",
+                        String.format(Locale.getDefault(), "%.1f", state.averageRating / 10),
+                        Icons.Default.Star
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -197,10 +239,18 @@ fun ProfileScreen(
                 // Insights (ADN Gamer)
                 if (state.topGenres.isNotEmpty() || state.topPlatforms.isNotEmpty()) {
                     SectionTitle("Tu ADN Gamer")
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         if (state.topGenres.isNotEmpty()) {
                             Column(Modifier.weight(1f)) {
-                                Text("Top Géneros", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                Text(
+                                    "Top Géneros",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
                                 state.topGenres.forEach { genre ->
                                     Text("• $genre", fontSize = 13.sp)
                                 }
@@ -208,7 +258,12 @@ fun ProfileScreen(
                         }
                         if (state.topPlatforms.isNotEmpty()) {
                             Column(Modifier.weight(1f)) {
-                                Text("Top Plataformas", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                Text(
+                                    "Top Plataformas",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
                                 state.topPlatforms.forEach { platform ->
                                     Text("• $platform", fontSize = 13.sp)
                                 }
@@ -226,9 +281,47 @@ fun ProfileScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            if (user.steamUsername.isNotEmpty()) SocialIcon(Icons.Default.SportsEsports, Color(0xFF1b2838))
-                            if (user.twitchUsername.isNotEmpty()) SocialIcon(Icons.Default.LiveTv, Color(0xFF9146FF))
-                            if (user.discordUsername.isNotEmpty()) SocialIcon(Icons.AutoMirrored.Filled.Chat, Color(0xFF5865F2))
+                            if (user.steamUsername.isNotEmpty()) {
+                                SocialIcon(
+                                    painter = painterResource(id = R.drawable.ic_steamv2),
+                                    color = Color(0xFF66C0F4)
+                                ) {
+                                    val steamUrl =
+                                        "https://steamcommunity.com/search/users/${user.steamUsername}"
+                                    context.startActivity(
+                                        Intent(
+                                            Intent.ACTION_VIEW,
+                                            steamUrl.toUri()
+                                        )
+                                    )
+                                }
+                            }
+                            if (user.twitchUsername.isNotEmpty()) {
+                                SocialIcon(
+                                    painterResource(id = R.drawable.ic_twitch),
+                                    Color(0xFF9146FF)
+                                ) {
+                                    val twitchUrl = "https://www.twitch.tv/${user.twitchUsername}"
+                                    context.startActivity(
+                                        Intent(
+                                            Intent.ACTION_VIEW,
+                                            twitchUrl.toUri()
+                                        )
+                                    )
+                                }
+                            }
+                            if (user.discordUsername.isNotEmpty()) {
+                                SocialIcon(
+                                    painterResource(id = R.drawable.ic_discord),
+                                    Color(0xFF5865F2)
+                                ) {
+                                    Toast.makeText(
+                                        context,
+                                        "Usuario Discord: ${user.discordUsername}",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
                         }
                         Spacer(modifier = Modifier.height(24.dp))
                     }
@@ -246,7 +339,11 @@ fun ProfileScreen(
                 // Preferencias
                 SectionTitle("Preferencias")
                 ThemeSelector(state.themeMode) { viewModel.setThemeMode(it) }
-                PreferenceItem("Notificaciones", Icons.Default.Notifications, state.notificationsEnabled) {
+                PreferenceItem(
+                    "Notificaciones",
+                    Icons.Default.Notifications,
+                    state.notificationsEnabled
+                ) {
                     viewModel.toggleNotifications(!state.notificationsEnabled)
                 }
 
@@ -263,10 +360,14 @@ fun ProfileScreen(
                         popUpTo(0) { inclusive = true }
                     }
                 }
-                ActionItem("Eliminar Cuenta", Icons.Default.DeleteForever, color = MaterialTheme.colorScheme.error) {
+                ActionItem(
+                    "Eliminar Cuenta",
+                    Icons.Default.DeleteForever,
+                    color = MaterialTheme.colorScheme.error
+                ) {
                     viewModel.deleteAccount { navController.navigate(Routes.Register.route) }
                 }
-                
+
                 Spacer(modifier = Modifier.height(40.dp))
             }
         }
