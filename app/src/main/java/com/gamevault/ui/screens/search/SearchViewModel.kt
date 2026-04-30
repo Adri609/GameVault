@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.gamevault.data.repository.IgdbRepository
 import com.gamevault.domain.model.Game
 import com.gamevault.domain.usecase.ToggleVaultUseCase
-import com.gamevault.domain.util.Resource
+import com.gamevault.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

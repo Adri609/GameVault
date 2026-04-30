@@ -117,4 +117,7 @@ dependencies {
 
     // Google authenticator
     implementation(libs.play.services.auth)
+
+    // DataStore
+    implementation(libs.androidx.datastore.preferences)
 }

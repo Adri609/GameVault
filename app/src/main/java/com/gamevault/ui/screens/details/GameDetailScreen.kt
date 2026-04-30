@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.gamevault.domain.util.Resource
+import com.gamevault.utils.Resource
 import com.gamevault.ui.components.AchievementItem
 import com.gamevault.ui.components.FadingBlurredBackground
 import com.gamevault.ui.components.MetadataBlock

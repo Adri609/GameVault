@@ -9,7 +9,7 @@ import com.gamevault.data.repository.SteamRepository
 import com.gamevault.domain.model.Achievement
 import com.gamevault.domain.model.Game
 import com.gamevault.domain.usecase.ToggleVaultUseCase
-import com.gamevault.domain.util.Resource
+import com.gamevault.utils.Resource
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

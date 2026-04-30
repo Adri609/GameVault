@@ -185,4 +185,38 @@ class IgdbRepository @Inject constructor(
             null
         }
     }
+
+    /**
+     * Obtiene los metadatos (géneros y plataformas) de una lista de juegos por sus IDs.
+     * Útil para reparar juegos sincronizados antiguos que no tenían esta info.
+     */
+    suspend fun getGamesMetadata(gameIds: List<Long>): List<Game> {
+        if (gameIds.isEmpty()) return emptyList()
+        
+        return try {
+            val idsString = gameIds.joinToString(",")
+            val queryText = """
+                fields id, genres.name, platforms.name;
+                where id = ($idsString);
+                limit 500;
+            """.trimIndent()
+
+            val requestBody = queryText.toRequestBody("text/plain".toMediaTypeOrNull())
+            
+            igdbApi.getGames(requestBody).map { apiGame ->
+                Game(
+                    id = apiGame.id,
+                    name = apiGame.name,
+                    coverUrl = null,
+                    rating = null,
+                    releaseDate = null,
+                    genres = apiGame.genres?.map { it.name } ?: emptyList(),
+                    platforms = apiGame.platforms?.map { it.name } ?: emptyList()
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
 }

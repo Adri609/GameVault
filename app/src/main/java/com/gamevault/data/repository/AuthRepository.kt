@@ -3,7 +3,8 @@ package com.gamevault.data.repository
 import com.gamevault.domain.model.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import jakarta.inject.Inject
+import com.google.firebase.firestore.SetOptions
+import javax.inject.Inject
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -24,10 +25,22 @@ class AuthRepository @Inject constructor(
     suspend fun saveUserToFirestore(user: User): Result<Unit> {
         return try {
             // Guardar el documento usando el ID del usuario como identificador
-            usersCollection.document(user.id).set(user).await() 
+            usersCollection.document(user.id)
+                .set(user, SetOptions.merge())
+                .await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
+
+    suspend fun getUserFromFirestore(uid: String): User? {
+        return try {
+            firestore.collection("users").document(uid).get().await()
+                .toObject(User::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
 }

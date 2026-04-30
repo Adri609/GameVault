@@ -14,7 +14,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.gamevault.domain.util.Resource
+import com.gamevault.utils.Resource
 import com.gamevault.ui.components.GameGrid
 import com.gamevault.ui.components.SearchInputField
 import com.gamevault.ui.navigation.Routes

@@ -8,5 +8,10 @@ data class User(
     val email: String = "",
     val username: String = "",
     val profilePictureUrl: String = "",
-    val bio: String = ""
+    val bio: String = "",
+    val status: String = "",
+    val registrationDate: Long = System.currentTimeMillis(),
+    val steamUsername: String = "",
+    val twitchUsername: String = "",
+    val discordUsername: String = ""
 )

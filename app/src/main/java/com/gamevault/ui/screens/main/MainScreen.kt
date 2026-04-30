@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -30,6 +31,8 @@ import com.gamevault.ui.screens.vault.VaultScreen
 @Composable
 fun MainScreen(
     onSignOut: () -> Unit,
+    onNavigateToProfile: () -> Unit,
+    onNavigateToGameDetail: (Long) -> Unit,
     viewModel: MainViewModel = hiltViewModel()
 ) {
     val bottomNavController = rememberNavController()
@@ -39,22 +42,19 @@ fun MainScreen(
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Lógica para ocultar la barra inferior en la pantalla de Detalles
+    // Lógica para mostrar la barra inferior (solo en las 3 pestañas principales)
     val showBottomBar = currentRoute in listOf(
         Routes.Home.route,
         Routes.Search.route,
-        Routes.Vault.route,
-        Routes.Profile.route
+        Routes.Vault.route
     )
 
     Scaffold(
         topBar = {
-            if (showBottomBar && currentRoute != Routes.Profile.route) {
+            if (showBottomBar) {
                 GameVaultTopBar(
                     profilePictureUrl = userProfile?.profilePictureUrl,
-                    onProfileClick = {
-                        bottomNavController.navigate(Routes.Profile.route)
-                    },
+                    onProfileClick = onNavigateToProfile,
                     onSignOutClick = {
                         viewModel.signOut()
                         onSignOut()
@@ -63,7 +63,6 @@ fun MainScreen(
             }
         },
         bottomBar = {
-            // Solo dibujamos la barra si estamos en las pestañas principales
             if (showBottomBar) {
                 GameVaultBottomBar(
                     currentRoute = currentRoute,
@@ -81,15 +80,13 @@ fun MainScreen(
         }
     ) { innerPadding ->
 
-        // Contenedor de navegación
         NavHost(
             navController = bottomNavController,
             startDestination = Routes.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-
             composable(Routes.Home.route) {
-                HomeScreen(navController = bottomNavController)
+                HomeScreen(navController = bottomNavController) // Todavía pasamos bottomNavController para clics de juegos
             }
 
             composable(Routes.Search.route) {
@@ -99,18 +96,17 @@ fun MainScreen(
             composable(Routes.Vault.route) {
                 VaultScreen(navController = bottomNavController)
             }
-
-            composable(Routes.Profile.route) {
-                ProfileScreen(navController = bottomNavController)
-            }
-
+            
+            // Redirigir GameDetail al host global
             composable(
                 route = Routes.GameDetail.route,
                 arguments = listOf(navArgument("gameId") { type = NavType.LongType })
             ) { backStackEntry ->
                 val gameId = backStackEntry.arguments?.getLong("gameId") ?: return@composable
-
-                GameDetailScreen(navController = bottomNavController)
+                LaunchedEffect(Unit) {
+                    onNavigateToGameDetail(gameId)
+                    bottomNavController.popBackStack()
+                }
             }
         }
     }

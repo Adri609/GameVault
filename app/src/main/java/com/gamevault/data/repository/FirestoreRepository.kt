@@ -100,7 +100,7 @@ class FirestoreRepository @Inject constructor(
     suspend fun updateUserProfile(user: User): Result<Unit> {
         return try {
             val uid = auth.currentUser?.uid ?: return Result.failure(Exception("Usuario no autenticado"))
-            firestore.collection("users").document(uid).set(user).await()
+            firestore.collection("users").document(uid).set(user, SetOptions.merge()).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
