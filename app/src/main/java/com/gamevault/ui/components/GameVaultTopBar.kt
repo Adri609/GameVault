@@ -33,7 +33,7 @@ fun GameVaultTopBar(
             Image(
                 painter = painterResource(id = R.drawable.gamevaultlogo),
                 contentDescription = "GameVault Logo",
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(75.dp)
             )
         },
         actions = {
