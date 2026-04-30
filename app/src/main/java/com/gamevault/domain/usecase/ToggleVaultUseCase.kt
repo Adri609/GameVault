@@ -35,7 +35,9 @@ class ToggleVaultUseCase @Inject constructor(
                 coverUrl = game.coverUrl,
                 releaseDate = game.releaseDate,
                 steamId = game.steamId,
-                rating = game.rating
+                rating = game.rating,
+                genres = game.genres,
+                platforms = game.platforms
             )
 
             // Intentar guardar en remoto primero o en paralelo

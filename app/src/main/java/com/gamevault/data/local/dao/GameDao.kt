@@ -41,4 +41,10 @@ interface GameDao {
      */
     @Query("SELECT * FROM favorite_games WHERE userId = :userId AND isSynced = 0")
     suspend fun getUnsyncedGames(userId: String): List<GameEntity>
+
+    /**
+     * Elimina todos los juegos de la bóveda para un usuario específico.
+     */
+    @Query("DELETE FROM favorite_games WHERE userId = :userId")
+    suspend fun clearVault(userId: String)
 }

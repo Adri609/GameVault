@@ -13,6 +13,8 @@ data class FirebaseGameDto (
     val releaseDate: Long? = null,
     val steamId: String? = null,
     val rating: Double? = null,
+    val genres: List<String> = emptyList(),
+    val platforms: List<String> = emptyList(),
     val addedAt: Long = System.currentTimeMillis()
 ) {
     // Constructor vacío para firebase, lo gener kotlin automáticamente al dar un valor por defecto a todo

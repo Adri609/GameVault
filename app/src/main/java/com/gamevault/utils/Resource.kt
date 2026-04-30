@@ -1,4 +1,4 @@
-package com.gamevault.domain.util
+package com.gamevault.utils
 
 /**
  * Clase sellada para representar el estado de una operación (Red, Base de datos, etc.)

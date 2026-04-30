@@ -33,3 +33,12 @@ fun formatReleaseDate(releaseDateTimestamp: Long?): String {
         "Lanzado el ${formatter.format(Date(releaseTimeMillis))}"
     }
 }
+
+/**
+ * Formatea una fecha de registro (timestamp en ms) a un formato legible (ej: Abril 2024).
+ */
+fun formatRegistrationDate(timestamp: Long): String {
+    val date = Date(timestamp)
+    val sdf = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
+    return sdf.format(date).replaceFirstChar { it.uppercase() }
+}

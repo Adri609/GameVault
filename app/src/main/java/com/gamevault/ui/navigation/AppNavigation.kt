@@ -4,8 +4,12 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.composable
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.gamevault.ui.screens.auth.RegisterScreen
-import com.gamevault.ui.screens.main.MainScreen // <-- ¡Importante importar MainScreen!
+import com.gamevault.ui.screens.details.GameDetailScreen
+import com.gamevault.ui.screens.main.MainScreen
+import com.gamevault.ui.screens.profile.ProfileScreen
 
 /**
  * Configura el grafo de navegación de la aplicación.
@@ -21,19 +25,41 @@ fun AppNavigation() {
         composable(Routes.Register.route) {
             RegisterScreen(
                 onNavigateToHome = {
-                    // Navegamos al esqueleto principal
                     navController.navigate(Routes.Main.route) {
-                        /*Esta línea borra el Register del historial para no volver a la pantalla de registro
-                        * si el usuario pulsa el botón atrás del móvil*/
                         popUpTo(Routes.Register.route) { inclusive = true }
                     }
                 }
             )
         }
 
-        // Pantalla principal
+        // Pantalla principal (con pestañas internas)
         composable(Routes.Main.route) {
-            MainScreen()
+            MainScreen(
+                onSignOut = {
+                    navController.navigate(Routes.Register.route) {
+                        popUpTo(Routes.Main.route) { inclusive = true }
+                    }
+                },
+                onNavigateToProfile = {
+                    navController.navigate(Routes.Profile.route)
+                },
+                onNavigateToGameDetail = { gameId ->
+                    navController.navigate(Routes.GameDetail.createRoute(gameId))
+                }
+            )
+        }
+
+        // Pantalla de Perfil (Global)
+        composable(Routes.Profile.route) {
+            ProfileScreen(navController = navController)
+        }
+
+        // Pantalla de Detalle (Global)
+        composable(
+            route = Routes.GameDetail.route,
+            arguments = listOf(navArgument("gameId") { type = NavType.LongType })
+        ) {
+            GameDetailScreen(navController = navController)
         }
     }
 }
