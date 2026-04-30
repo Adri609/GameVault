@@ -29,8 +29,19 @@ class FirestoreRepository @Inject constructor(
      */
     suspend fun uploadProfilePicture(uri: Uri): Result<String> {
         return try {
-            val uid = auth.currentUser?.uid ?: return Result.failure(Exception("Usuario no autenticado"))
-            val ref = storage.reference.child("profile_pictures/$uid.jpg")
+            val uid = auth.currentUser?.uid
+                ?: return Result.failure(Exception("Usuario no autenticado"))
+
+            // Borrar imagen anterior si existe
+            try {
+                storage.reference.child("profile_pictures/$uid.jpg").delete().await()
+            } catch (e: Exception) {
+                // Si no existe imagen previa, ignorar el error
+            }
+
+            // Nombre único con timestamp para forzar URL nueva y evitar caché de Coil
+            val filename = "profile_pictures/${uid}_${System.currentTimeMillis()}.jpg"
+            val ref = storage.reference.child(filename)
             ref.putFile(uri).await()
             val url = ref.downloadUrl.await().toString()
             Result.success(url)

@@ -188,16 +188,13 @@ class ProfileViewModel @Inject constructor(
 
                 firestoreRepository.updateUserProfile(updatedUser).onSuccess {
                     settingsDataStore.cacheUserProfile(updatedUser)
-                    _state.update {
-                        it.copy(
-                            user = Resource.Success(updatedUser),
-                            isUploadingImage = false
-                        )
-                    }
-                }.onFailure {
+                    _state.update { it.copy(user = Resource.Success(updatedUser), isUploadingImage = false) }
+                }.onFailure { e ->
+                    android.util.Log.e("ProfileViewModel", "Error al actualizar perfil: ${e.message}", e)
                     _state.update { it.copy(isUploadingImage = false) }
                 }
-            }.onFailure {
+            }.onFailure { e ->
+                android.util.Log.e("ProfileViewModel", "Error al subir imagen: ${e.message}", e)
                 _state.update { it.copy(isUploadingImage = false) }
             }
         }
