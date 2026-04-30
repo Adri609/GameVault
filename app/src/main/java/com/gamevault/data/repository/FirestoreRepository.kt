@@ -8,14 +8,20 @@ import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 import android.net.Uri
+import com.cloudinary.android.MediaManager
+import com.cloudinary.android.callback.ErrorInfo
+import com.cloudinary.android.callback.UploadCallback
+import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
 
 @Singleton
 class FirestoreRepository @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth,
-    private val storage: FirebaseStorage
+    private val storage: FirebaseStorage,
+    private val mediaManager: MediaManager
 ) {
     // Obtener la referencia a la colección del usuario actual
     private fun getUserVaultCollection() = auth.currentUser?.uid?.let { uid ->
@@ -32,20 +38,41 @@ class FirestoreRepository @Inject constructor(
             val uid = auth.currentUser?.uid
                 ?: return Result.failure(Exception("Usuario no autenticado"))
 
-            // Borrar imagen anterior si existe
-            try {
-                storage.reference.child("profile_pictures/$uid.jpg").delete().await()
-            } catch (e: Exception) {
-                // Si no existe imagen previa, ignorar el error
-            }
+            android.util.Log.d("Cloudinary", "Iniciando subida para uid: $uid, uri: $uri")
 
-            // Nombre único con timestamp para forzar URL nueva y evitar caché de Coil
-            val filename = "profile_pictures/${uid}_${System.currentTimeMillis()}.jpg"
-            val ref = storage.reference.child(filename)
-            ref.putFile(uri).await()
-            val url = ref.downloadUrl.await().toString()
-            Result.success(url)
+            suspendCancellableCoroutine { continuation ->
+                mediaManager.upload(uri)
+                    .option("public_id", "profile_pictures/$uid")
+                    .option("overwrite", true)
+                    .option("resource_type", "image")
+                    .callback(object : UploadCallback {
+                        override fun onSuccess(requestId: String, resultData: Map<*, *>) {
+                            android.util.Log.d("Cloudinary", "Éxito: $resultData")
+                            val url = resultData["secure_url"] as? String
+                            if (url != null) {
+                                continuation.resume(Result.success(url))
+                            } else {
+                                continuation.resume(Result.failure(Exception("URL no recibida")))
+                            }
+                        }
+                        override fun onError(requestId: String?, error: ErrorInfo) {
+                            android.util.Log.e("Cloudinary", "Error: ${error.description}, código: ${error.code}")
+                            continuation.resume(Result.failure(Exception(error.description)))
+                        }
+                        override fun onStart(requestId: String) {
+                            android.util.Log.d("Cloudinary", "Subida iniciada: $requestId")
+                        }
+                        override fun onProgress(requestId: String, bytes: Long, totalBytes: Long) {
+                            android.util.Log.d("Cloudinary", "Progreso: $bytes / $totalBytes")
+                        }
+                        override fun onReschedule(requestId: String, error: ErrorInfo) {
+                            android.util.Log.e("Cloudinary", "Reprogramado: ${error.description}")
+                        }
+                    })
+                    .dispatch()
+            }
         } catch (e: Exception) {
+            android.util.Log.e("Cloudinary", "Excepción: ${e.message}", e)
             Result.failure(e)
         }
     }

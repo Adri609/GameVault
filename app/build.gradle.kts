@@ -35,6 +35,12 @@ android {
         buildConfigField("String", "IGDB_CLIENT_ID", "\"${localProperties.getProperty("IGDB_CLIENT_ID", "")}\"")
         buildConfigField("String", "IGDB_CLIENT_SECRET", "\"${localProperties.getProperty("IGDB_CLIENT_SECRET", "")}\"")
         buildConfigField("String", "STEAM_API_KEY", "\"${localProperties.getProperty("STEAM_API_KEY", "")}\"")
+        // Cloudinary
+        buildConfigField("String", "CLOUDINARY_NAME", "\"${localProperties.getProperty("CLOUDINARY_NAME", "")}\"")
+        buildConfigField("String", "CLOUDINARY_API_KEY", "\"${localProperties.getProperty("CLOUDINARY_API_KEY", "")}\"")
+        buildConfigField("String", "CLOUDINARY_CLIENT_SECRET", "\"${localProperties.getProperty("CLOUDINARY_CLIENT_SECRET", "")}\"")
+
+
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -76,6 +82,8 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.core)
 
     // DEPENDENCIAS GAMEVAULT
 
@@ -120,4 +128,7 @@ dependencies {
 
     // DataStore
     implementation(libs.androidx.datastore.preferences)
+
+    // Cloudinary
+    implementation(libs.cloudinary.android)
 }
