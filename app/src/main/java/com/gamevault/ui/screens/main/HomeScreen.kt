@@ -9,16 +9,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.gamevault.ui.components.GameCarousel
-import com.gamevault.ui.navigation.Routes
 
 /**
  * Pantalla de inicio que muestra diferentes categorías de juegos (Populares, Lanzamientos, Esperados).
  */
 @Composable
 fun HomeScreen(
-    navController: NavController,
+    onNavigateToGameDetail: (Long) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -29,44 +27,35 @@ fun HomeScreen(
             .verticalScroll(rememberScrollState())
             .padding(vertical = 16.dp)
     ) {
-        // Juegos Populares
         GameCarousel(
             title = "Juegos Populares",
             state = state.popularGames,
-            onGameClick = { game ->
-                navController.navigate(Routes.GameDetail.createRoute(game.id))
-            },
+            onGameClick = { game -> onNavigateToGameDetail(game.id) },
             onGameAddClick = { game -> viewModel.toggleVault(game) },
             onRetry = { viewModel.fetchAllCategories() }
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Últimos Lanzamientos
         GameCarousel(
             title = "Últimos Lanzamientos",
             state = state.newReleases,
-            onGameClick = { game ->
-                navController.navigate(Routes.GameDetail.createRoute(game.id))
-            },
+            onGameClick = { game -> onNavigateToGameDetail(game.id) },
             onGameAddClick = { game -> viewModel.toggleVault(game) },
             onRetry = { viewModel.fetchAllCategories() }
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Juegos Más Esperados
         GameCarousel(
             title = "Más Esperados",
             state = state.anticipatedGames,
-            onGameClick = { game ->
-                navController.navigate(Routes.GameDetail.createRoute(game.id))
-            },
+            onGameClick = { game -> onNavigateToGameDetail(game.id) },
             onGameAddClick = { game -> viewModel.toggleVault(game) },
             onRetry = { viewModel.fetchAllCategories() },
             showActionButton = false
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(100.dp))
     }
 }
