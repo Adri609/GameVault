@@ -12,9 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.gamevault.ui.components.GameGrid
-import com.gamevault.ui.navigation.Routes
 
 /**
  * Pantalla que muestra la colección personal de juegos del usuario (La Bóveda).
@@ -22,7 +20,7 @@ import com.gamevault.ui.navigation.Routes
  */
 @Composable
 fun VaultScreen(
-    navController: NavController,
+    onNavigateToGameDetail: (Long) -> Unit,
     viewModel: VaultViewModel = hiltViewModel()
 ) {
     val savedGames by viewModel.savedGames.collectAsState()
@@ -32,7 +30,6 @@ fun VaultScreen(
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        // Título de la pantalla
         Text(
             text = "Mi Bóveda",
             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
@@ -40,25 +37,21 @@ fun VaultScreen(
         )
 
         if (savedGames.isEmpty()) {
-            // Mensaje informativo si no hay juegos guardados
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Tu bóveda está vacía.\n¡Ve a la Home y añade algunos juegos!",
+                    text = "Tu bóveda está vacía.\n¡Añade algunos juegos!",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
             }
         } else {
-            // Rejilla de juegos guardados
             GameGrid(
                 games = savedGames,
-                onGameClick = { game ->
-                    navController.navigate(Routes.GameDetail.createRoute(game.id))
-                },
+                onGameClick = { game -> onNavigateToGameDetail(game.id) },
                 contentPadding = PaddingValues(bottom = 16.dp),
                 modifier = Modifier.fillMaxSize()
             )

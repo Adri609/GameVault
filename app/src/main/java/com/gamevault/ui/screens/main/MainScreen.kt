@@ -2,31 +2,66 @@ package com.gamevault.ui.screens.main
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.gamevault.ui.components.GameVaultBottomBar
 import com.gamevault.ui.components.GameVaultTopBar
 import com.gamevault.ui.navigation.Routes
-import com.gamevault.ui.screens.details.GameDetailScreen
-import com.gamevault.ui.screens.profile.ProfileScreen
 import com.gamevault.ui.screens.search.SearchScreen
 import com.gamevault.ui.screens.vault.VaultScreen
+import kotlinx.coroutines.launch
 
 /**
- * Pantalla principal que contiene el esqueleto de la aplicación con navegación por pestañas.
+ * Índices de las pestañas del [HorizontalPager].
+ * Se usan para sincronizar el pager con la [GameVaultBottomBar].
+ */
+private object TabIndex {
+    const val HOME = 0
+    const val SEARCH = 1
+    const val VAULT = 2
+    const val COUNT = 3
+}
+
+/**
+ * Convierte el índice del pager a la ruta de navegación correspondiente,
+ * necesario para que [GameVaultBottomBar] ilumine la pestaña activa.
+ */
+private fun indexToRoute(index: Int): String = when (index) {
+    TabIndex.HOME -> Routes.Home.route
+    TabIndex.SEARCH -> Routes.Search.route
+    TabIndex.VAULT -> Routes.Vault.route
+    else -> Routes.Home.route
+}
+
+/**
+ * Convierte una ruta de navegación al índice del pager correspondiente.
+ */
+private fun routeToIndex(route: String): Int = when (route) {
+    Routes.Home.route -> TabIndex.HOME
+    Routes.Search.route -> TabIndex.SEARCH
+    Routes.Vault.route -> TabIndex.VAULT
+    else -> TabIndex.HOME
+}
+
+/**
+ * Pantalla raíz de la aplicación tras el login.
+ *
+ * Gestiona la navegación entre las tres pestañas principales mediante un [HorizontalPager],
+ * que permite tanto el toque en la [GameVaultBottomBar] como el deslizamiento horizontal
+ * con el dedo. La navegación hacia destinos globales (perfil, detalle de juego, cierre de
+ * sesión) se delega al NavHost externo a través de callbacks.
+ *
+ * @param onSignOut Callback que cierra la sesión y navega a la pantalla de registro.
+ * @param onNavigateToProfile Callback que abre la pantalla de perfil.
+ * @param onNavigateToGameDetail Callback que abre el detalle de un juego dado su ID.
+ * @param viewModel ViewModel que expone el perfil del usuario para la TopBar.
  */
 @Composable
 fun MainScreen(
@@ -35,78 +70,60 @@ fun MainScreen(
     onNavigateToGameDetail: (Long) -> Unit,
     viewModel: MainViewModel = hiltViewModel()
 ) {
-    val bottomNavController = rememberNavController()
     val userProfile by viewModel.userProfile.collectAsState()
+    val scope = rememberCoroutineScope()
 
-    // Obtener la ruta actual para saber dónde estamos
-    val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-
-    // Lógica para mostrar la barra inferior (solo en las 3 pestañas principales)
-    val showBottomBar = currentRoute in listOf(
-        Routes.Home.route,
-        Routes.Search.route,
-        Routes.Vault.route
+    // Estado del pager — gestiona la página actual y la animación de deslizamiento
+    val pagerState = rememberPagerState(
+        initialPage = TabIndex.HOME,
+        pageCount = { TabIndex.COUNT }
     )
+
+    // Ruta activa derivada del índice actual del pager, para sincronizar la BottomBar
+    val currentRoute = indexToRoute(pagerState.currentPage)
 
     Scaffold(
         topBar = {
-            if (showBottomBar) {
-                GameVaultTopBar(
-                    profilePictureUrl = userProfile?.profilePictureUrl,
-                    onProfileClick = onNavigateToProfile,
-                    onSignOutClick = {
-                        viewModel.signOut()
-                        onSignOut()
-                    }
-                )
-            }
+            GameVaultTopBar(
+                profilePictureUrl = userProfile?.profilePictureUrl,
+                onProfileClick = onNavigateToProfile,
+                onSignOutClick = {
+                    viewModel.signOut()
+                    onSignOut()
+                }
+            )
         },
         bottomBar = {
-            if (showBottomBar) {
-                GameVaultBottomBar(
-                    currentRoute = currentRoute,
-                    onNavigate = { route ->
-                        bottomNavController.navigate(route) {
-                            popUpTo(bottomNavController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
+            GameVaultBottomBar(
+                currentRoute = currentRoute,
+                onNavigate = { route ->
+                    // Al tocar un item de la BottomBar anima el pager a esa página
+                    scope.launch {
+                        pagerState.animateScrollToPage(routeToIndex(route))
                     }
-                )
-            }
+                }
+            )
         }
     ) { innerPadding ->
 
-        NavHost(
-            navController = bottomNavController,
-            startDestination = Routes.Home.route,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable(Routes.Home.route) {
-                HomeScreen(navController = bottomNavController) // Todavía pasamos bottomNavController para clics de juegos
-            }
-
-            composable(Routes.Search.route) {
-                SearchScreen(navController = bottomNavController)
-            }
-
-            composable(Routes.Vault.route) {
-                VaultScreen(navController = bottomNavController)
-            }
-            
-            // Redirigir GameDetail al host global
-            composable(
-                route = Routes.GameDetail.route,
-                arguments = listOf(navArgument("gameId") { type = NavType.LongType })
-            ) { backStackEntry ->
-                val gameId = backStackEntry.arguments?.getLong("gameId") ?: return@composable
-                LaunchedEffect(Unit) {
-                    onNavigateToGameDetail(gameId)
-                    bottomNavController.popBackStack()
-                }
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            // Precarga las páginas adyacentes para que el deslizamiento sea fluido
+            beyondViewportPageCount = 1
+        ) { page ->
+            when (page) {
+                TabIndex.HOME -> HomeScreen(
+                    onNavigateToGameDetail = onNavigateToGameDetail
+                )
+                TabIndex.SEARCH -> SearchScreen(
+                    onNavigateToGameDetail = onNavigateToGameDetail
+                )
+                TabIndex.VAULT -> VaultScreen(
+                    onNavigateToGameDetail = onNavigateToGameDetail
+                )
             }
         }
     }

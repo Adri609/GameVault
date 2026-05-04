@@ -24,7 +24,7 @@ import com.gamevault.ui.navigation.Routes
  */
 @Composable
 fun SearchScreen(
-    navController: NavController,
+    onNavigateToGameDetail: (Long) -> Unit,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -46,23 +46,27 @@ fun SearchScreen(
             modifier = Modifier.padding(vertical = 16.dp)
         )
 
-        // GESTIÓN DE ESTADOS
         when (val results = state.results) {
             is Resource.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             }
+
             is Resource.Error -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = results.message ?: "Error", color = MaterialTheme.colorScheme.error)
+                        Text(
+                            text = results.message ?: "Error",
+                            color = MaterialTheme.colorScheme.error
+                        )
                         TextButton(onClick = { viewModel.performSearch() }) {
                             Text("Reintentar")
                         }
                     }
                 }
             }
+
             is Resource.Success -> {
                 val games = results.data ?: emptyList()
                 if (games.isEmpty()) {
@@ -75,9 +79,7 @@ fun SearchScreen(
                 } else {
                     GameGrid(
                         games = games,
-                        onGameClick = { game ->
-                            navController.navigate(Routes.GameDetail.createRoute(game.id))
-                        },
+                        onGameClick = { game -> onNavigateToGameDetail(game.id) },
                         onActionClick = { game -> viewModel.toggleVault(game) },
                         showActionButtons = true,
                         contentPadding = PaddingValues(bottom = 16.dp),
@@ -85,8 +87,8 @@ fun SearchScreen(
                     )
                 }
             }
+
             null -> {
-                // Estado inicial: no se ha buscado nada
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
                         text = "Escribe el nombre de un juego para empezar",
