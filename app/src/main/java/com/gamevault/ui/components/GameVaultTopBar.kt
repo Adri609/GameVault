@@ -24,11 +24,23 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.positionInRoot
 
+/**
+ * Barra superior principal de la aplicación.
+ *
+ * Muestra el logotipo de GameVault y el avatar del usuario. También gestiona la
+ * posición global del avatar para anclar correctamente el menú emergente [ProfileMenuOverlay].
+ *
+ * @param profilePictureUrl URL de la foto de perfil del usuario (puede ser null).
+ * @param onProfileClick Callback invocado cuando el usuario selecciona "Mi Perfil" en el menú.
+ * @param onSettingsClick Callback invocado cuando el usuario selecciona "Configuración" en el menú.
+ * @param onSignOutClick Callback invocado cuando el usuario selecciona "Cerrar Sesión" en el menú.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameVaultTopBar(
     profilePictureUrl: String?,
     onProfileClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     onSignOutClick: () -> Unit,
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -134,6 +146,7 @@ fun GameVaultTopBar(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false },
                     onProfileClick = onProfileClick,
+                    onSettingsClick = onSettingsClick,
                     onSignOutClick = onSignOutClick,
                     anchorPosition = anchorPosition,
                 )

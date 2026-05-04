@@ -55,11 +55,12 @@ private fun routeToIndex(route: String): Int = when (route) {
  *
  * Gestiona la navegación entre las tres pestañas principales mediante un [HorizontalPager],
  * que permite tanto el toque en la [GameVaultBottomBar] como el deslizamiento horizontal
- * con el dedo. La navegación hacia destinos globales (perfil, detalle de juego, cierre de
- * sesión) se delega al NavHost externo a través de callbacks.
+ * con el dedo. La navegación hacia destinos globales (perfil, configuración, detalle de juego,
+ * cierre de sesión) se delega al NavHost externo a través de callbacks.
  *
- * @param onSignOut Callback que cierra la sesión y navega a la pantalla de registro.
- * @param onNavigateToProfile Callback que abre la pantalla de perfil.
+ * @param onSignOut Callback que cierra la sesión y navega a la pantalla de autenticación.
+ * @param onNavigateToProfile Callback que abre la pantalla de perfil del usuario.
+ * @param onNavigateToSettings Callback que abre la pantalla de configuración de la cuenta y app.
  * @param onNavigateToGameDetail Callback que abre el detalle de un juego dado su ID.
  * @param viewModel ViewModel que expone el perfil del usuario para la TopBar.
  */
@@ -67,6 +68,7 @@ private fun routeToIndex(route: String): Int = when (route) {
 fun MainScreen(
     onSignOut: () -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     onNavigateToGameDetail: (Long) -> Unit,
     viewModel: MainViewModel = hiltViewModel()
 ) {
@@ -87,6 +89,7 @@ fun MainScreen(
             GameVaultTopBar(
                 profilePictureUrl = userProfile?.profilePictureUrl,
                 onProfileClick = onNavigateToProfile,
+                onSettingsClick = onNavigateToSettings,
                 onSignOutClick = {
                     viewModel.signOut()
                     onSignOut()
