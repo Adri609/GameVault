@@ -70,7 +70,7 @@ class RegisterViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RegisterUiState())
-
+    
     /**
      * Estado de la UI que refleja el estado actual de la pantalla de autenticación.
      * Este es un StateFlow que emite cambios de estado en tiempo real.
@@ -148,46 +148,46 @@ class RegisterViewModel @Inject constructor(
                 // Ejecutar inicio de sesión
                 signInWithEmailUseCase(currentState.email, currentState.password)
                     .onSuccess {
-                        _uiState.update {
+                        _uiState.update { 
                             it.copy(
-                                isLoading = false,
+                                isLoading = false, 
                                 isSuccess = true,
                                 failedLoginAttempts = 0,
                                 isPasswordResetMode = false,
                                 passwordResetSent = false
-                            )
+                            ) 
                         }
                     }
                     .onFailure { error ->
                         val newAttempts = currentState.failedLoginAttempts + 1
-                        _uiState.update {
+                        _uiState.update { 
                             it.copy(
-                                isLoading = false,
+                                isLoading = false, 
                                 errorMessage = error.message,
                                 failedLoginAttempts = newAttempts
-                            )
+                            ) 
                         }
                     }
             } else {
                 // Ejecutar registro
                 registerWithEmailUseCase(currentState.email, currentState.password, currentState.username)
                     .onSuccess {
-                        _uiState.update {
+                        _uiState.update { 
                             it.copy(
-                                isLoading = false,
+                                isLoading = false, 
                                 isSuccess = true,
                                 failedLoginAttempts = 0,
                                 isPasswordResetMode = false,
                                 passwordResetSent = false
-                            )
+                            ) 
                         }
                     }
                     .onFailure { error ->
-                        _uiState.update {
+                        _uiState.update { 
                             it.copy(
-                                isLoading = false,
+                                isLoading = false, 
                                 errorMessage = error.message
-                            )
+                            ) 
                         }
                     }
             }
@@ -199,12 +199,12 @@ class RegisterViewModel @Inject constructor(
      * Cambia la UI para mostrar solo el campo de email.
      */
     fun enterPasswordResetMode() {
-        _uiState.update {
+        _uiState.update { 
             it.copy(
                 isPasswordResetMode = true,
                 errorMessage = null,
                 passwordResetSent = false
-            )
+            ) 
         }
     }
 
@@ -213,14 +213,14 @@ class RegisterViewModel @Inject constructor(
      * Restaura la UI y limpia el estado de recuperación.
      */
     fun exitPasswordResetMode() {
-        _uiState.update {
+        _uiState.update { 
             it.copy(
                 isPasswordResetMode = false,
                 passwordResetSent = false,
                 resetCountdown = 0,
                 failedLoginAttempts = 0,
                 errorMessage = null
-            )
+            ) 
         }
     }
 
@@ -230,7 +230,7 @@ class RegisterViewModel @Inject constructor(
      */
     fun sendPasswordReset() {
         val email = _uiState.value.email
-
+        
         if (!isValidEmail(email)) {
             _uiState.update { it.copy(errorMessage = "Por favor, ingresa un correo válido.") }
             return
@@ -240,21 +240,21 @@ class RegisterViewModel @Inject constructor(
 
         auth.sendPasswordResetEmail(email).addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                _uiState.update {
+                _uiState.update { 
                     it.copy(
                         isLoading = false,
                         passwordResetSent = true,
                         resetCountdown = 30,
                         errorMessage = null
-                    )
+                    ) 
                 }
                 startResetCountdown()
             } else {
-                _uiState.update {
+                _uiState.update { 
                     it.copy(
                         isLoading = false,
                         errorMessage = "Error al enviar el correo. Intenta de nuevo."
-                    )
+                    ) 
                 }
             }
         }

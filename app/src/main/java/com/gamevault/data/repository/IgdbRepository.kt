@@ -1,5 +1,6 @@
 package com.gamevault.data.repository
 
+import com.gamevault.data.mapper.GameMappers
 import com.gamevault.data.remote.IgdbApi
 import com.gamevault.domain.model.Game
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -31,18 +32,7 @@ class IgdbRepository @Inject constructor(
 
         val requestBody = queryText.toRequestBody("text/plain".toMediaTypeOrNull())
 
-        return igdbApi.getGames(requestBody).map { apiGame ->
-            Game(
-                id = apiGame.id,
-                name = apiGame.name,
-                coverUrl = apiGame.getCoverUrl(),
-                rating = apiGame.rating,
-                releaseDate = apiGame.firstReleasedDate,
-                genres = apiGame.genres?.map { it.name } ?: emptyList(),
-                platforms = apiGame.platforms?.map { it.name } ?: emptyList(),
-                summary = apiGame.summary
-            )
-        }
+        return GameMappers.gamesFromDtos(igdbApi.getGames(requestBody))
     }
 
     /**
@@ -58,18 +48,7 @@ class IgdbRepository @Inject constructor(
 
         val requestBody = queryText.toRequestBody("text/plain".toMediaTypeOrNull())
 
-        return igdbApi.getGames(requestBody).map { apiGame ->
-            Game(
-                id = apiGame.id,
-                name = apiGame.name,
-                coverUrl = apiGame.getCoverUrl(),
-                rating = apiGame.rating,
-                releaseDate = apiGame.firstReleasedDate,
-                genres = apiGame.genres?.map { it.name } ?: emptyList(),
-                platforms = apiGame.platforms?.map { it.name } ?: emptyList(),
-                summary = apiGame.summary
-            )
-        }
+        return GameMappers.gamesFromDtos(igdbApi.getGames(requestBody))
     }
 
     /**
@@ -87,18 +66,7 @@ class IgdbRepository @Inject constructor(
 
         val requestBody = queryText.toRequestBody("text/plain".toMediaTypeOrNull())
 
-        return igdbApi.getGames(requestBody).map { apiGame ->
-            Game(
-                id = apiGame.id,
-                name = apiGame.name,
-                coverUrl = apiGame.getCoverUrl(),
-                rating = apiGame.rating,
-                releaseDate = apiGame.firstReleasedDate,
-                genres = apiGame.genres?.map { it.name } ?: emptyList(),
-                platforms = apiGame.platforms?.map { it.name } ?: emptyList(),
-                summary = apiGame.summary
-            )
-        }
+        return GameMappers.gamesFromDtos(igdbApi.getGames(requestBody))
     }
 
     /**
@@ -116,18 +84,7 @@ class IgdbRepository @Inject constructor(
 
             val requestBody = queryText.toRequestBody("text/plain".toMediaTypeOrNull())
 
-            igdbApi.getGames(requestBody).map { apiGame ->
-                Game(
-                    id = apiGame.id,
-                    name = apiGame.name,
-                    coverUrl = apiGame.getCoverUrl(),
-                    rating = apiGame.rating,
-                    releaseDate = apiGame.firstReleasedDate,
-                    genres = apiGame.genres?.map { it.name } ?: emptyList(),
-                    platforms = apiGame.platforms?.map { it.name } ?: emptyList(),
-                    summary = apiGame.summary
-                )
-            }
+            GameMappers.gamesFromDtos(igdbApi.getGames(requestBody))
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
@@ -151,35 +108,7 @@ class IgdbRepository @Inject constructor(
 
             val response = igdbApi.getGames(requestBody)
 
-            response.firstOrNull()?.let { apiGame ->
-                val steamUrl = apiGame.websites?.find {
-                    it.url?.contains("steampowered.com", ignoreCase = true) == true
-                }?.url
-
-                var steamAppId: String? = null
-
-                if (steamUrl != null) {
-                    val regex = """app/(\d+)""".toRegex()
-                    val match = regex.find(steamUrl)
-                    steamAppId = match?.groupValues?.get(1)
-                }
-
-                if (steamAppId == null) {
-                    steamAppId = apiGame.externalGames?.find { it.category == 1 }?.uid
-                }
-
-                Game(
-                    id = apiGame.id,
-                    name = apiGame.name,
-                    coverUrl = apiGame.getCoverUrl(),
-                    rating = apiGame.rating,
-                    releaseDate = apiGame.firstReleasedDate,
-                    genres = apiGame.genres?.map { it.name } ?: emptyList(),
-                    platforms = apiGame.platforms?.map { it.name } ?: emptyList(),
-                    summary = apiGame.summary,
-                    steamId = steamAppId
-                )
-            }
+            response.firstOrNull()?.let { GameMappers.gameFromDtoWithSteamId(it) }
         } catch (e: Exception) {
             e.printStackTrace()
             null
@@ -203,17 +132,7 @@ class IgdbRepository @Inject constructor(
 
             val requestBody = queryText.toRequestBody("text/plain".toMediaTypeOrNull())
             
-            igdbApi.getGames(requestBody).map { apiGame ->
-                Game(
-                    id = apiGame.id,
-                    name = apiGame.name,
-                    coverUrl = null,
-                    rating = null,
-                    releaseDate = null,
-                    genres = apiGame.genres?.map { it.name } ?: emptyList(),
-                    platforms = apiGame.platforms?.map { it.name } ?: emptyList()
-                )
-            }
+            GameMappers.gamesMetadataFromDtos(igdbApi.getGames(requestBody))
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
