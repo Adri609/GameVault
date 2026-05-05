@@ -51,6 +51,9 @@ fun GameDetailScreen(
     val state by viewModel.state.collectAsState()
     val isSaved by viewModel.isSaved.collectAsState()
 
+    // Observar los datos locales del juego si ya está en la bóveda
+    val localGame by viewModel.localVaultGame.collectAsState()
+
     // Estado para controlar la visibilidad del BottomSheet de gestión
     var showManageVaultSheet by remember { mutableStateOf(false) }
 
@@ -269,10 +272,9 @@ fun GameDetailScreen(
             // Muestra el panel inferior si el estado es true
             if (showManageVaultSheet) {
                 ManageVaultBottomSheet(
-                    // TODO: En el futuro se pasarán los valores reales de la BDD si ya estaba guardado
-                    initialStatus = GameStatus.NONE,
-                    initialRating = null,
-                    initialFavorite = false,
+                    initialStatus = localGame?.status ?: GameStatus.NONE,
+                    initialRating = localGame?.personalRating,
+                    initialFavorite = localGame?.isFavorite ?: false,
                     isAlreadySaved = isSaved,
                     onDismissRequest = { showManageVaultSheet = false },
                     onSave = { status, rating, isFavorite ->

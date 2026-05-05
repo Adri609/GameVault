@@ -1,5 +1,6 @@
 package com.gamevault.data.mapper
 
+import com.gamevault.data.local.entity.GameEntity
 import com.gamevault.domain.model.Game
 import com.gamevault.domain.model.GameStatus
 import com.gamevault.domain.model.igdb.GameDto
@@ -166,4 +167,54 @@ object GameMappers {
     fun gamesMetadataFromDtos(gameDtos: List<GameDto>): List<Game> {
         return gameDtos.map { gameMetadataFromDto(it) }
     }
+}
+
+/**
+ * Convierte una entidad de base de datos en un modelo de dominio.
+ *
+ * @receiver La entidad [GameEntity] obtenida de la base de datos local.
+ * @return El modelo [Game] listo para ser consumido por la capa de UI.
+ */
+fun GameEntity.toDomainModel(): Game {
+    return Game(
+        id = this.id,
+        name = this.name,
+        coverUrl = this.coverUrl,
+        rating = this.rating,
+        releaseDate = this.releaseDate,
+        genres = this.genres,
+        platforms = this.platforms,
+        summary = this.summary,
+        steamId = this.steamId,
+        status = this.status,
+        personalRating = this.personalRating,
+        isFavorite = this.isFavorite
+    )
+}
+
+/**
+ * Convierte un modelo de dominio en una entidad de base de datos.
+ *
+ * @receiver El modelo [Game] gestionado por la aplicación.
+ * @param userId El identificador único del usuario al que pertenece el juego.
+ * @param isSynced Indica si el juego ha sido sincronizado con la nube.
+ * @return La entidad [GameEntity] lista para ser insertada o actualizada en Room.
+ */
+fun Game.toEntity(userId: String, isSynced: Boolean = false): GameEntity {
+    return GameEntity(
+        id = this.id,
+        userId = userId,
+        name = this.name,
+        coverUrl = this.coverUrl,
+        rating = this.rating,
+        releaseDate = this.releaseDate,
+        genres = this.genres,
+        platforms = this.platforms,
+        summary = this.summary,
+        steamId = this.steamId,
+        isSynced = isSynced,
+        status = this.status,
+        personalRating = this.personalRating,
+        isFavorite = this.isFavorite
+    )
 }
