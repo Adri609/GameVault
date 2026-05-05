@@ -22,26 +22,27 @@ class LoginWithGoogleUseCase @Inject constructor (
      */
     suspend operator fun invoke(idToken: String): Result<User> {
         return try {
-            // Convertir el token de Google en una credencial de Firebase
             val credential = GoogleAuthProvider.getCredential(idToken, null)
-
-            // Iniciar sesión en Firebase utilizando la credencial
             val authResult = auth.signInWithCredential(credential).await()
             val firebaseUser = authResult.user
+                ?: return Result.failure(Exception("Error al iniciar sesión con Google."))
 
-            if (firebaseUser != null) {
-                // Crear el modelo de usuario con los datos de la cuenta de Google
+            // Comprobar si el usuario ya tiene perfil guardado en Firestore
+            val existingUser = authRepository.getUserFromFirestore(firebaseUser.uid)
+
+            if (existingUser != null) {
+                // Usuario existente: NO tocar Firestore, devolver sus datos tal cual
+                Result.success(existingUser)
+            } else {
+                // Usuario nuevo: crear perfil por primera vez
                 val newUser = User(
                     id = firebaseUser.uid,
                     email = firebaseUser.email ?: "",
-                    username = firebaseUser.displayName ?: "Usuario de Google"
+                    username = firebaseUser.displayName ?: "Usuario de Google",
+                    profilePictureUrl = firebaseUser.photoUrl?.toString() ?: ""
                 )
-                // Guardar o actualizar la información del usuario en Firestore
                 authRepository.saveUserToFirestore(newUser)
-
                 Result.success(newUser)
-            } else {
-                Result.failure(Exception("Error al iniciar sesión con Google."))
             }
         } catch (e: Exception) {
             Result.failure(e)

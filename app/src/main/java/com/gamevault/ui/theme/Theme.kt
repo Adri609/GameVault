@@ -33,10 +33,13 @@ private val LightColorScheme = lightColorScheme(
     */
 )
 
+/**
+ * Tema principal de la aplicación GameVault.
+ * Configura los esquemas de color para modo claro/oscuro y soporta colores dinámicos en Android 12+.
+ */
 @Composable
 fun GameVaultTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
