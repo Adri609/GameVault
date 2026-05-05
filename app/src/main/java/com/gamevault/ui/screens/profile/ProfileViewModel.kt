@@ -4,10 +4,8 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gamevault.data.local.SettingsDataStore
-import com.gamevault.data.local.ThemeMode
 import com.gamevault.data.local.dao.GameDao
 import com.gamevault.data.repository.FirestoreRepository
-import com.gamevault.data.repository.IgdbRepository
 import com.gamevault.domain.model.Game
 import com.gamevault.domain.model.User
 import com.gamevault.utils.Resource
@@ -22,6 +20,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * Estado que representa los datos públicos e internos del perfil del usuario.
+ * No contiene preferencias de la aplicación ni configuraciones de cuenta.
+ */
 data class ProfileState(
     val user: Resource<User> = Resource.Loading(),
     val totalGames: Int = 0,
@@ -31,16 +33,17 @@ data class ProfileState(
     val topPlatforms: List<String> = emptyList(),
     val isUpdating: Boolean = false,
     val updateSuccess: Boolean = false,
-    val passwordResetSent: Boolean = false,
-    val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val notificationsEnabled: Boolean = true,
     val isUploadingImage: Boolean = false
 )
 
+/**
+ * ViewModel dedicado exclusivamente a la gestión de la identidad del usuario (Perfil).
+ * Maneja la lectura de datos, edición de biografía, redes sociales, carga de avatar
+ * y el cálculo de estadísticas ("ADN Gamer").
+ */
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val firestoreRepository: FirestoreRepository,
-    private val igdbRepository: IgdbRepository,
     private val gameDao: GameDao,
     private val auth: FirebaseAuth,
     private val settingsDataStore: SettingsDataStore
@@ -51,15 +54,6 @@ class ProfileViewModel @Inject constructor(
 
     init {
         loadProfileData()
-        observeSettings()
-    }
-
-    private fun observeSettings() {
-        viewModelScope.launch {
-            settingsDataStore.themeMode.collectLatest { mode ->
-                _state.update { it.copy(themeMode = mode) }
-            }
-        }
     }
 
     private fun loadProfileData() {
@@ -70,16 +64,14 @@ class ProfileViewModel @Inject constructor(
             }
 
             firestoreRepository.getUserProfile().onSuccess { user ->
-                settingsDataStore.cacheUserProfile(user) // actualizar caché
+                settingsDataStore.cacheUserProfile(user)
                 _state.update { it.copy(user = Resource.Success(user)) }
             }.onFailure { e ->
-                // Solo mostrar error si no hay caché que mostrar
                 if (_state.value.user !is Resource.Success) {
                     _state.update { it.copy(user = Resource.Error(e.message ?: "Error al cargar perfil")) }
                 }
             }
 
-            // Observar estadísticas locales continuamente
             val userId = auth.currentUser?.uid ?: return@launch
             gameDao.getAllFavoriteGames(userId).collectLatest { games ->
                 val total = games.size
@@ -100,15 +92,6 @@ class ProfileViewModel @Inject constructor(
                     )
                 }
 
-                _state.update {
-                    it.copy(
-                        totalGames = total,
-                        averageRating = avg,
-                        lastAddedGame = lastGame
-                    )
-                }
-
-                // Calcular Top Géneros y Plataformas sobre TODOS los juegos de la bóveda
                 val genres = games.flatMap { it.genres }.filter { it.isNotBlank() }
                     .groupingBy { it }.eachCount()
                     .toList().sortedByDescending { it.second }.take(3).map { it.first }
@@ -117,7 +100,15 @@ class ProfileViewModel @Inject constructor(
                     .groupingBy { it }.eachCount()
                     .toList().sortedByDescending { it.second }.take(3).map { it.first }
 
-                _state.update { it.copy(topGenres = genres, topPlatforms = platforms) }
+                _state.update {
+                    it.copy(
+                        totalGames = total,
+                        averageRating = avg,
+                        lastAddedGame = lastGame,
+                        topGenres = genres,
+                        topPlatforms = platforms
+                    )
+                }
             }
         }
     }
@@ -160,25 +151,6 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun sendPasswordReset() {
-        val email = auth.currentUser?.email ?: return
-        auth.sendPasswordResetEmail(email).addOnCompleteListener {
-            if (it.isSuccessful) {
-                _state.update { it.copy(passwordResetSent = true) }
-            }
-        }
-    }
-
-    fun setThemeMode(mode: ThemeMode) {
-        viewModelScope.launch {
-            settingsDataStore.setThemeMode(mode)
-        }
-    }
-
-    fun toggleNotifications(enabled: Boolean) {
-        _state.update { it.copy(notificationsEnabled = enabled) }
-    }
-
     fun onImageSelected(uri: Uri) {
         viewModelScope.launch {
             _state.update { it.copy(isUploadingImage = true) }
@@ -189,42 +161,11 @@ class ProfileViewModel @Inject constructor(
                 firestoreRepository.updateUserProfile(updatedUser).onSuccess {
                     settingsDataStore.cacheUserProfile(updatedUser)
                     _state.update { it.copy(user = Resource.Success(updatedUser), isUploadingImage = false) }
-                }.onFailure { e ->
-                    android.util.Log.e("ProfileViewModel", "Error al actualizar perfil: ${e.message}", e)
+                }.onFailure {
                     _state.update { it.copy(isUploadingImage = false) }
                 }
-            }.onFailure { e ->
-                android.util.Log.e("ProfileViewModel", "Error al subir imagen: ${e.message}", e)
+            }.onFailure {
                 _state.update { it.copy(isUploadingImage = false) }
-            }
-        }
-    }
-
-    fun deleteAccount(onComplete: () -> Unit) {
-        viewModelScope.launch {
-            val userId = auth.currentUser?.uid ?: return@launch
-
-            // 1. Borrar datos en Firestore (Bóveda y Perfil)
-            firestoreRepository.deleteUserData().onSuccess {
-                // 2. Borrar datos en Room (Local)
-                gameDao.clearVault(userId)
-
-                // 3. Borrar la cuenta de Firebase Auth
-                auth.currentUser?.delete()?.addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        onComplete()
-                    } else {
-                        android.util.Log.e(
-                            "ProfileViewModel",
-                            "Error al borrar cuenta: ${task.exception?.message}"
-                        )
-                    }
-                }
-            }.onFailure { e ->
-                android.util.Log.e(
-                    "ProfileViewModel",
-                    "Error al borrar datos de Firestore: ${e.message}"
-                )
             }
         }
     }
@@ -232,9 +173,4 @@ class ProfileViewModel @Inject constructor(
     fun resetUpdateSuccess() {
         _state.update { it.copy(updateSuccess = false) }
     }
-
-    fun signOut() {
-        auth.signOut()
-    }
 }
-

@@ -17,13 +17,18 @@ import com.gamevault.ui.screens.auth.RegisterScreen
 import com.gamevault.ui.screens.details.GameDetailScreen
 import com.gamevault.ui.screens.main.MainScreen
 import com.gamevault.ui.screens.profile.ProfileScreen
+import com.gamevault.ui.screens.settings.SettingsScreen
 
 /**
- * Configura el grafo de navegación de la aplicación.
- * Define los destinos y las transiciones entre las diferentes pantallas.
+ * Duración estándar para las animaciones de transición entre pantallas.
  */
 private const val ANIM_DURATION = 300
 
+/**
+ * Configura el grafo de navegación raíz de la aplicación.
+ * Define los destinos principales de nivel superior y las transiciones animadas
+ * entre las diferentes pantallas utilizando Jetpack Navigation Compose.
+ */
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -76,6 +81,9 @@ fun AppNavigation() {
                 onNavigateToProfile = {
                     navController.navigate(Routes.Profile.route)
                 },
+                onNavigateToSettings = {
+                    navController.navigate(Routes.Settings.route)
+                },
                 onNavigateToGameDetail = { gameId ->
                     navController.navigate(Routes.GameDetail.createRoute(gameId))
                 }
@@ -111,6 +119,31 @@ fun AppNavigation() {
             }
         ) {
             ProfileScreen(navController = navController)
+        }
+
+        // Settings: entra deslizándose desde la derecha con un ligero fade
+        composable(
+            route = Routes.Settings.route,
+            enterTransition = {
+                slideInHorizontally(
+                    initialOffsetX = { it },
+                    animationSpec = tween(ANIM_DURATION)
+                ) + fadeIn(animationSpec = tween(ANIM_DURATION))
+            },
+            exitTransition = {
+                slideOutHorizontally(
+                    targetOffsetX = { it },
+                    animationSpec = tween(ANIM_DURATION)
+                ) + fadeOut(animationSpec = tween(ANIM_DURATION))
+            },
+            popExitTransition = {
+                slideOutHorizontally(
+                    targetOffsetX = { it },
+                    animationSpec = tween(ANIM_DURATION)
+                ) + fadeOut(animationSpec = tween(ANIM_DURATION))
+            }
+        ) {
+            SettingsScreen(navController = navController)
         }
 
         // GameDetail: entra desde la derecha, sale hacia la derecha

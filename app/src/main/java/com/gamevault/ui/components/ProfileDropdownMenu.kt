@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -21,11 +22,24 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
 
+/**
+ * Menú emergente personalizado que se superpone a la pantalla actual.
+ * Crea un efecto visual de recorte (cutout) alrededor del avatar del usuario
+ * y muestra opciones de navegación como Perfil, Configuración y Cerrar sesión.
+ *
+ * @param expanded Determina si el menú está visible o animándose para cerrarse.
+ * @param onDismissRequest Callback invocado para solicitar el cierre del menú (ej. tocar fuera).
+ * @param onProfileClick Callback para navegar a la pantalla de Perfil.
+ * @param onSettingsClick Callback para navegar a la pantalla de Configuración de la cuenta/app.
+ * @param onSignOutClick Callback para cerrar la sesión del usuario.
+ * @param anchorPosition Posición en coordenadas de pantalla del elemento ancla (el avatar) para dibujar el recorte.
+ */
 @Composable
 fun ProfileMenuOverlay(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
     onProfileClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     onSignOutClick: () -> Unit,
     anchorPosition: Offset = Offset.Zero,
 ) {
@@ -82,11 +96,8 @@ fun ProfileMenuOverlay(
 
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         if (anchorPosition != Offset.Zero) {
-                            // El IconButton estándar de M3 ocupa 48dp × 48dp
                             val iconButtonPx = with(density) { 48.dp.toPx() }
-                            // Radio del recorte: ligeramente mayor que el borde del avatar (36dp/2 + margen)
                             val cutoutRadius = with(density) { 20.dp.toPx() }
-
                             val yOffsetCorrection = with(density) { 24.dp.toPx() }
 
                             drawCircle(
@@ -145,6 +156,16 @@ fun ProfileMenuOverlay(
                             }
                         )
 
+                        ProfileMenuItem(
+                            label = "Configuración",
+                            icon = Icons.Default.Settings,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            onClick = {
+                                onDismissRequest()
+                                onSettingsClick()
+                            }
+                        )
+
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 12.dp),
                             thickness = 0.5.dp,
@@ -167,6 +188,10 @@ fun ProfileMenuOverlay(
     }
 }
 
+/**
+ * Barra decorativa superior para el menú desplegable que aplica un efecto de brillo (shimmer)
+ * animado horizontalmente de forma continua.
+ */
 @Composable
 fun MenuShimmerBar() {
     val infiniteTransition = rememberInfiniteTransition(label = "shimmer")

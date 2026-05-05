@@ -1,8 +1,6 @@
 package com.gamevault.ui.screens.profile
 
-import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -11,26 +9,37 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Casino
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.gamevault.R
-import com.gamevault.utils.Resource
 import com.gamevault.ui.components.*
 import com.gamevault.ui.navigation.Routes
+import com.gamevault.utils.Resource
 import java.util.Locale
-import androidx.core.net.toUri
 
+/**
+ * Pantalla del Perfil de Usuario.
+ *
+ * Se encarga exclusivamente de mostrar la identidad pública del usuario (Avatar, Bio, Estado),
+ * sus enlaces sociales y sus estadísticas generadas a partir de los datos de su Bóveda
+ * ("ADN Gamer", últimos añadidos, etc.).
+ *
+ * Cuenta con dos modos visuales (Lectura y Edición) gestionados internamente mediante
+ * el estado `isEditing`. Utiliza componentes modulares (`SocialTextField`, `SocialActionIcon`)
+ * para delegar la lógica de navegación social, manteniendo esta clase centrada únicamente en la UI.
+ *
+ * @param navController Controlador de navegación para retroceder o ir al detalle de un juego.
+ * @param viewModel ViewModel inyectado por Hilt que provee el estado y las acciones del perfil.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
@@ -39,14 +48,15 @@ fun ProfileScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
 
+    // Lanzador para el selector de imágenes de la galería
     val imageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { viewModel.onImageSelected(it) }
     }
 
+    // Estados locales para los campos del formulario de edición
     var username by remember { mutableStateOf("") }
     var profilePictureUrl by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
@@ -54,8 +64,11 @@ fun ProfileScreen(
     var steamUsername by remember { mutableStateOf("") }
     var twitchUsername by remember { mutableStateOf("") }
     var discordUsername by remember { mutableStateOf("") }
+
+    // Interruptor del modo edición
     var isEditing by remember { mutableStateOf(false) }
 
+    // Sincroniza los estados locales cuando los datos del ViewModel se cargan con éxito
     LaunchedEffect(state.user) {
         if (state.user is Resource.Success) {
             val user = state.user.data
@@ -69,6 +82,7 @@ fun ProfileScreen(
         }
     }
 
+    // Feedback visual tras guardar cambios y salida del modo edición
     LaunchedEffect(state.updateSuccess) {
         if (state.updateSuccess) {
             snackbarHostState.showSnackbar("Perfil actualizado")
@@ -77,17 +91,11 @@ fun ProfileScreen(
         }
     }
 
-    LaunchedEffect(state.passwordResetSent) {
-        if (state.passwordResetSent) {
-            snackbarHostState.showSnackbar("Correo de restablecimiento enviado")
-        }
-    }
-
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Perfil", fontWeight = FontWeight.Bold) },
+                title = { Text("Mi Perfil", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -114,7 +122,7 @@ fun ProfileScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Cabecera de Perfil
+            // CABECERA (Siempre visible, se adapta al modo edición internamente)
             ProfileHeader(
                 url = profilePictureUrl,
                 username = username,
@@ -130,59 +138,36 @@ fun ProfileScreen(
                 onImageClick = { if (isEditing) imageLauncher.launch("image/*") }
             )
 
+            // --- CONTENIDO CONDICIONAL ---
             if (isEditing) {
-                // Enlaces Sociales en edición
+                // Modo Edición: Muestra los inputs modulares para las redes sociales
                 SectionTitle("Enlaces Sociales")
-                OutlinedTextField(
+
+                SocialTextField(
+                    platform = SocialPlatform.STEAM,
                     value = steamUsername,
-                    onValueChange = { steamUsername = it },
-                    label = { Text("Usuario de Steam") },
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_steamv2),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                    onValueChange = { steamUsername = it }
                 )
-                OutlinedTextField(
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SocialTextField(
+                    platform = SocialPlatform.TWITCH,
                     value = twitchUsername,
-                    onValueChange = { twitchUsername = it },
-                    label = { Text("Usuario de Twitch") },
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_twitch),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                    onValueChange = { twitchUsername = it }
                 )
-                OutlinedTextField(
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SocialTextField(
+                    platform = SocialPlatform.DISCORD,
                     value = discordUsername,
-                    onValueChange = { discordUsername = it },
-                    label = { Text("Usuario de Discord") },
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_discord),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                    onValueChange = { discordUsername = it }
                 )
 
+                // Botón de guardado
                 Button(
                     onClick = {
                         viewModel.updateProfile(
-                            username,
-                            profilePictureUrl,
-                            bio,
-                            status,
-                            steamUsername,
-                            twitchUsername,
-                            discordUsername
+                            username, profilePictureUrl, bio, status, steamUsername, twitchUsername, discordUsername
                         )
                     },
                     modifier = Modifier
@@ -192,19 +177,15 @@ fun ProfileScreen(
                     enabled = !state.isUpdating
                 ) {
                     if (state.isUpdating) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
+                        CircularProgressIndicator(Modifier.size(20.dp), Color.White, 2.dp)
                     } else {
                         Text("Guardar Cambios")
                     }
                 }
             } else {
+                // Modo Lectura: Muestra estadísticas y enlaces activos
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Fecha de Registro
                 val userData = (state.user as? Resource.Success)?.data
                 userData?.let { user ->
                     Text(
@@ -215,65 +196,48 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                // Estadísticas Rápidas
+                // Estadísticas rápidas
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     StatCard(
-                        Modifier.weight(1f),
-                        "Juegos",
-                        state.totalGames.toString(),
-                        Icons.Default.Casino
+                        modifier = Modifier.weight(1f),
+                        label = "Juegos",
+                        value = state.totalGames.toString(),
+                        icon = Icons.Default.Casino
                     )
                     StatCard(
-                        Modifier.weight(1f),
-                        "Media",
-                        String.format(Locale.getDefault(), "%.1f", state.averageRating / 10),
-                        Icons.Default.Star
+                        modifier = Modifier.weight(1f),
+                        label = "Media",
+                        value = String.format(Locale.getDefault(), "%.1f", state.averageRating / 10),
+                        icon = Icons.Default.Star
                     )
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Insights (ADN Gamer)
+                // Insights: El "ADN Gamer" calculado desde Room
                 if (state.topGenres.isNotEmpty() || state.topPlatforms.isNotEmpty()) {
                     SectionTitle("Tu ADN Gamer")
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         if (state.topGenres.isNotEmpty()) {
                             Column(Modifier.weight(1f)) {
-                                Text(
-                                    "Top Géneros",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                state.topGenres.forEach { genre ->
-                                    Text("• $genre", fontSize = 13.sp)
-                                }
+                                Text("Top Géneros", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                state.topGenres.forEach { Text("• $it", fontSize = 13.sp) }
                             }
                         }
                         if (state.topPlatforms.isNotEmpty()) {
                             Column(Modifier.weight(1f)) {
-                                Text(
-                                    "Top Plataformas",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                state.topPlatforms.forEach { platform ->
-                                    Text("• $platform", fontSize = 13.sp)
-                                }
+                                Text("Top Plataformas", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                state.topPlatforms.forEach { Text("• $it", fontSize = 13.sp) }
                             }
                         }
                     }
                     Spacer(modifier = Modifier.height(24.dp))
                 }
 
-                // Enlaces Sociales (Lectura)
+                // Enlaces Sociales modulares
                 userData?.let { user ->
                     if (user.steamUsername.isNotEmpty() || user.twitchUsername.isNotEmpty() || user.discordUsername.isNotEmpty()) {
                         SectionTitle("Social")
@@ -282,93 +246,27 @@ fun ProfileScreen(
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             if (user.steamUsername.isNotEmpty()) {
-                                SocialIcon(
-                                    painter = painterResource(id = R.drawable.ic_steamv2),
-                                    color = Color(0xFF66C0F4)
-                                ) {
-                                    val steamUrl =
-                                        "https://steamcommunity.com/search/users/${user.steamUsername}"
-                                    context.startActivity(
-                                        Intent(
-                                            Intent.ACTION_VIEW,
-                                            steamUrl.toUri()
-                                        )
-                                    )
-                                }
+                                SocialActionIcon(SocialPlatform.STEAM, user.steamUsername)
                             }
                             if (user.twitchUsername.isNotEmpty()) {
-                                SocialIcon(
-                                    painterResource(id = R.drawable.ic_twitch),
-                                    Color(0xFF9146FF)
-                                ) {
-                                    val twitchUrl = "https://www.twitch.tv/${user.twitchUsername}"
-                                    context.startActivity(
-                                        Intent(
-                                            Intent.ACTION_VIEW,
-                                            twitchUrl.toUri()
-                                        )
-                                    )
-                                }
+                                SocialActionIcon(SocialPlatform.TWITCH, user.twitchUsername)
                             }
                             if (user.discordUsername.isNotEmpty()) {
-                                SocialIcon(
-                                    painterResource(id = R.drawable.ic_discord),
-                                    Color(0xFF5865F2)
-                                ) {
-                                    Toast.makeText(
-                                        context,
-                                        "Usuario Discord: ${user.discordUsername}",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
+                                SocialActionIcon(SocialPlatform.DISCORD, user.discordUsername)
                             }
                         }
                         Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
 
-                // Último añadido
+                // Tarjeta del último juego añadido a la Bóveda
                 state.lastAddedGame?.let { game ->
                     SectionTitle("Último añadido")
                     LastAddedCard(game) {
                         navController.navigate(Routes.GameDetail.createRoute(game.id))
                     }
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(40.dp))
                 }
-
-                // Preferencias
-                SectionTitle("Preferencias")
-                ThemeSelector(state.themeMode) { viewModel.setThemeMode(it) }
-                PreferenceItem(
-                    "Notificaciones",
-                    Icons.Default.Notifications,
-                    state.notificationsEnabled
-                ) {
-                    viewModel.toggleNotifications(!state.notificationsEnabled)
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Configuración de la cuenta
-                SectionTitle("Configuración de la cuenta")
-                ActionItem("Cambiar Contraseña", Icons.Default.Lock) {
-                    viewModel.sendPasswordReset()
-                }
-                ActionItem("Cerrar Sesión", Icons.Default.Logout) {
-                    viewModel.signOut()
-                    navController.navigate(Routes.Register.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
-                ActionItem(
-                    "Eliminar Cuenta",
-                    Icons.Default.DeleteForever,
-                    color = MaterialTheme.colorScheme.error
-                ) {
-                    viewModel.deleteAccount { navController.navigate(Routes.Register.route) }
-                }
-
-                Spacer(modifier = Modifier.height(40.dp))
             }
         }
     }
