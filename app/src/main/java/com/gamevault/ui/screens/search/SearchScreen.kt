@@ -1,8 +1,11 @@
 package com.gamevault.ui.screens.search
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Search
@@ -18,20 +21,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.gamevault.R
 import com.gamevault.utils.Resource
 import com.gamevault.ui.components.GameGrid
 import com.gamevault.ui.components.SearchInputField
 
-/**
- * Pantalla de búsqueda mejorada con estilo Premium oscuro.
- */
 @Composable
 fun SearchScreen(
     onNavigateToGameDetail: (Long) -> Unit,
@@ -40,10 +38,15 @@ fun SearchScreen(
     val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current
 
-    // --- COLORES DEL TEMA ---
-    val backgroundColor = Color(0xFF0D0D12)
-    val accentColor = Color(0xFF03DAC6)
-    val surfaceColor = Color(0xFF1A1A24)
+    // --- DETECCIÓN DE MODO CLARO / OSCURO ---
+    val isDarkTheme = isSystemInDarkTheme()
+
+    // Colores
+    val backgroundColor = if (isDarkTheme) Color(0xFF0D0D12) else Color.White
+    val textColor = if (isDarkTheme) Color.White else Color.Black
+    val secondaryTextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
+    val surfaceColor = if (isDarkTheme) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f)
+    val accentColor = if (isDarkTheme) Color(0xFF03DAC6) else Color(0xFF6200EE)
 
     Column(
         modifier = Modifier
@@ -51,6 +54,8 @@ fun SearchScreen(
             .background(backgroundColor)
             .padding(horizontal = 16.dp)
     ) {
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         // --- BARRA DE BÚSQUEDA ---
         SearchInputField(
@@ -66,74 +71,89 @@ fun SearchScreen(
                 .padding(bottom = 16.dp)
         )
 
-        // --- GESTIÓN DE BÚSQUEDA ---
-        when (val results = state.results) {
-
-            // 1. ESTADO DE CARGA
-            is Resource.Loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = accentColor)
-                }
-            }
-
-            // 2. ESTADO DE ERROR
-            is Resource.Error -> {
-                SearchStateMessage(
-                    icon = Icons.Outlined.Warning,
-                    title = "Vaya, algo salió mal",
-                    subtitle = results.message ?: "Ocurrió un error al buscar los juegos.",
-                    iconTint = MaterialTheme.colorScheme.error
-                ) {
-                    Button(
-                        onClick = { viewModel.performSearch() },
-                        colors = ButtonDefaults.buttonColors(containerColor = surfaceColor, contentColor = Color.White),
-                        modifier = Modifier.padding(top = 16.dp)
-                    ) {
-                        Text("Reintentar")
+        // --- GESTIÓN DE ESTADOS ---
+        Crossfade(
+            targetState = state.results,
+            animationSpec = tween(500),
+            label = "SearchTransition"
+        ) { results ->
+            when (results) {
+                is Resource.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = accentColor)
                     }
                 }
-            }
 
-            // 3. ESTADO DE ÉXITO
-            is Resource.Success -> {
-                val games = results.data ?: emptyList()
-                if (games.isEmpty()) {
+                is Resource.Error -> {
                     SearchStateMessage(
-                        icon = Icons.Outlined.Search,
-                        title = "Sin resultados",
-                        subtitle = "No se encontraron juegos para \"${state.query}\""
-                    )
-                } else {
-                    GameGrid(
-                        games = games,
-                        onGameClick = { game -> onNavigateToGameDetail(game.id) },
-                        onActionClick = { game -> viewModel.toggleVault(game) },
-                        showActionButtons = true,
-                        contentPadding = PaddingValues(bottom = 100.dp),
-                        modifier = Modifier.fillMaxSize()
+                        icon = Icons.Outlined.Warning,
+                        title = "Vaya, algo salió mal",
+                        subtitle = results.message ?: "Ocurrió un error al buscar los juegos.",
+                        textColor = textColor,
+                        secondaryTextColor = secondaryTextColor,
+                        iconTint = MaterialTheme.colorScheme.error,
+                        surfaceColor = surfaceColor
+                    ) {
+                        Button(
+                            onClick = { viewModel.performSearch() },
+                            colors = ButtonDefaults.buttonColors(containerColor = accentColor, contentColor = Color.White),
+                            modifier = Modifier.padding(top = 16.dp)
+                        ) {
+                            Text("Reintentar")
+                        }
+                    }
+                }
+
+                is Resource.Success -> {
+                    val games = results.data ?: emptyList()
+                    if (games.isEmpty()) {
+                        SearchStateMessage(
+                            icon = Icons.Outlined.Search,
+                            title = "Sin resultados",
+                            subtitle = "No se encontraron juegos para \"${state.query}\"",
+                            textColor = textColor,
+                            secondaryTextColor = secondaryTextColor,
+                            iconTint = secondaryTextColor,
+                            surfaceColor = surfaceColor
+                        )
+                    } else {
+                        GameGrid(
+                            games = games,
+                            onGameClick = { game -> onNavigateToGameDetail(game.id) },
+                            onActionClick = { game -> viewModel.toggleVault(game) },
+                            showActionButtons = true,
+                            contentPadding = PaddingValues(bottom = 100.dp),
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+
+                null -> {
+                    SearchStateMessage(
+                        icon = Icons.Outlined.SportsEsports,
+                        title = "Explora el catálogo",
+                        subtitle = "Escribe el nombre de un juego para empezar a buscar.",
+                        textColor = textColor,
+                        secondaryTextColor = secondaryTextColor,
+                        iconTint = secondaryTextColor,
+                        surfaceColor = surfaceColor
                     )
                 }
-            }
-
-            // 4. ESTADO INICIAL
-            null -> {
-                SearchStateMessage(
-                    icon = Icons.Outlined.SportsEsports,
-                    title = "Explora el catálogo",
-                    subtitle = "Escribe el nombre de un juego para empezar a buscar."
-                )
             }
         }
     }
 }
 
-//MENSAJES DE ERROR
+// MENSAJES DE ESTADO
 @Composable
 fun SearchStateMessage(
     icon: ImageVector,
     title: String,
     subtitle: String,
-    iconTint: Color = Color.White.copy(alpha = 0.5f),
+    textColor: Color,
+    secondaryTextColor: Color,
+    iconTint: Color,
+    surfaceColor: Color,
     extraContent: @Composable () -> Unit = {}
 ) {
     Box(
@@ -142,18 +162,26 @@ fun SearchStateMessage(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
+            modifier = Modifier.padding(32.dp).offset(y = (-40).dp) // Sube un poco el bloque al centro visual
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(64.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(surfaceColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = title,
-                color = Color.White,
+                color = textColor,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -161,12 +189,11 @@ fun SearchStateMessage(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = subtitle,
-                color = Color.White.copy(alpha = 0.6f),
+                color = secondaryTextColor,
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center
             )
-
-            extraContent() // Para añadir botones extra, como el de "Reintentar"
+            extraContent()
         }
     }
 }

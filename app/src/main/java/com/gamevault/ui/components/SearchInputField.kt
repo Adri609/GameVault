@@ -1,5 +1,6 @@
 package com.gamevault.ui.components
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -18,17 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 
-/**
- * Componente reutilizable de barra de búsqueda con icono,
- * gestión de teclado y estilo Premium (Dark Theme).
- *
- * @param query Texto actual de la búsqueda.
- * @param onQueryChange Acción a ejecutar cuando el texto cambia.
- * @param onSearch Acción a ejecutar al pulsar el botón de buscar en el teclado.
- * @param placeholderText Texto de sugerencia que se muestra cuando está vacío.
- * @param modifier Modificador para el layout.
- */
-
 @Composable
 fun SearchInputField(
     query: String,
@@ -37,59 +27,41 @@ fun SearchInputField(
     modifier: Modifier = Modifier,
     placeholderText: String = "Buscar..."
 ) {
-    // Colores del tema para integrar la barra perfectamente
-    val accentColor = Color(0xFF03DAC6) // Cian para el cursor y borde activo
-    val surfaceColor = Color.White.copy(alpha = 0.05f) // Fondo cristal / semi-transparente
-    val iconAndPlaceholderColor = Color.White.copy(alpha = 0.5f) // Gris claro
+    val isDarkTheme = isSystemInDarkTheme()
+
+    // En modo claro el fondo será un gris muy sutil para que contraste con el blanco
+    val surfaceColor = if (isDarkTheme) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f)
+    val textColor = if (isDarkTheme) Color.White else Color.Black
+    val iconAndPlaceholderColor = if (isDarkTheme) Color.White.copy(alpha = 0.5f) else Color.Black.copy(alpha = 0.5f)
+    val accentColor = if (isDarkTheme) Color(0xFF03DAC6) else Color(0xFF6200EE)
 
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier.fillMaxWidth(),
         placeholder = {
-            Text(
-                text = placeholderText,
-                color = iconAndPlaceholderColor
-            )
+            Text(text = placeholderText, color = iconAndPlaceholderColor)
         },
         leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Buscar",
-                tint = iconAndPlaceholderColor
-            )
+            Icon(imageVector = Icons.Default.Search, contentDescription = "Buscar", tint = iconAndPlaceholderColor)
         },
-        // Botón (X) para limpiar el texto rápidamente
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(
-                        imageVector = Icons.Default.Clear,
-                        contentDescription = "Borrar búsqueda",
-                        tint = iconAndPlaceholderColor
-                    )
+                    Icon(imageVector = Icons.Default.Clear, contentDescription = "Borrar búsqueda", tint = iconAndPlaceholderColor)
                 }
             }
         },
         singleLine = true,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(
-            onSearch = { onSearch() }
-        ),
-        // Forma de "píldora" completamente redondeada
+        keyboardActions = KeyboardActions(onSearch = { onSearch() }),
         shape = RoundedCornerShape(24.dp),
-
-        // Personalización total de los colores para el Dark Theme
         colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = Color.White,
-            unfocusedTextColor = Color.White,
+            focusedTextColor = textColor,
+            unfocusedTextColor = textColor,
             cursorColor = accentColor,
-
-            // Fondo interior del campo de texto
             focusedContainerColor = surfaceColor,
             unfocusedContainerColor = surfaceColor,
-
-            // Comportamiento del borde (invisible por defecto, cian al pulsar)
             focusedBorderColor = accentColor,
             unfocusedBorderColor = Color.Transparent,
             errorBorderColor = Color.Red
