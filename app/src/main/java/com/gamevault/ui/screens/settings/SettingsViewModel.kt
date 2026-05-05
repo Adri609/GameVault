@@ -67,7 +67,7 @@ class SettingsViewModel @Inject constructor(
         val email = auth.currentUser?.email ?: return
         auth.sendPasswordResetEmail(email).addOnCompleteListener {
             if (it.isSuccessful) {
-                _state.update { it.copy(passwordResetSent = true) }
+                _state.update { it -> it.copy(passwordResetSent = true) }
             }
         }
     }
