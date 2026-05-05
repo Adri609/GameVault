@@ -59,8 +59,8 @@ fun RegisterScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
-    val gradientStartColor = Color(0xFF6200EE)
-    val gradientEndColor = Color(0xFF03DAC6)
+    val gradientStartColor = Color.Red
+    val gradientEndColor = Color.Blue
 
 
     // Launcher para capturar el resultado del flujo de Google Sign-In
@@ -95,104 +95,17 @@ fun RegisterScreen(
         }
     }
 
-  /*  Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .imePadding()
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        // Título que cambia según el modo
-        Text(
-            text = if (uiState.isLoginMode) "GameVault" else "Crea tu cuenta",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Formulario de registro con email
-        // El campo de usuario solo aparecerá en caso de estar en el formulario de registro
-        if (!uiState.isLoginMode) {
-            GameVaultTextField(
-                value = uiState.username,
-                onValueChange = { viewModel.onUsernameChanged(it) },
-                label = "Nombre de usuario"
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
-        GameVaultTextField(
-            value = uiState.email,
-            onValueChange = viewModel::onEmailChanged,
-            label = "Correo electrónico"
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        GameVaultTextField(
-            value = uiState.password,
-            onValueChange = viewModel::onPasswordChanged,
-            label = "Contraseña",
-            visualTransformation = PasswordVisualTransformation()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (uiState.errorMessage != null) {
-            Text(
-                text = uiState.errorMessage!!,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-        }
-
-        // Botón principal adaptativo
-        GameVaultButton(
-            text = if (uiState.isLoginMode) "Iniciar Sesión" else "Registrarse",
-            onClick = { viewModel.onRegisterClicked() },
-            isLoading = uiState.isLoading
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = "O", style = MaterialTheme.typography.bodyMedium)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Opción de autenticación externa
-        OutlinedButton(
-            onClick = { launcher.launch(googleSignInClient.signInIntent) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            enabled = !uiState.isLoading
-        ) {
-            Text("Continuar con Google")
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // El texto "interruptor" para cambiar de modo
-        TextButton(onClick = { viewModel.toggleLoginMode() }) {
-            Text(
-                text = if (uiState.isLoginMode)
-                    "¿No tienes cuenta? Regístrate aquí"
-                else
-                    "¿Ya tienes cuenta? Inicia sesión"
-            )
-        }
-    }*/
-
-    // --- DISEÑO DE LA INTERFAZ MEJORADA ---
+    // --- DISEÑO DE LA INTERFAZ  ---
     Box(modifier = Modifier.fillMaxSize()) {
-        // 1. Imagen de Fondo con Superposición Oscura
+        // Fondo
         Image(
-            painter = painterResource(id = R.drawable.fondohumos), // TU IMAGEN DE FONDO
+            painter = painterResource(id = R.drawable.fondohumos),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
+        // Filtro oscuro
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -203,58 +116,64 @@ fun RegisterScreen(
                 )
         )
 
-        // Contenido Principal
+        // Contenedor principal compacto (Arrangement.Top para que no se expanda innecesariamente)
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
+            // Espacio inicial pequeño
+            Spacer(modifier = Modifier.height(30.dp))
 
-            // 2. Logo y Título Estilizado
+            // Logo ajustado a 150dp para ahorrar espacio
             Image(
-                painter = painterResource(id = R.drawable.logo),
+                painter = painterResource(id = R.drawable.logo_pmgbueno),
                 contentDescription = "Logo GameVault",
-                modifier = Modifier.size(200.dp)
+                modifier = Modifier
+                    .size(265.dp)
+                    .align(Alignment.CenterHorizontally)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+
+            // Textos "subidos" con offset negativo para ignorar el espacio transparente de la imagen
             Text(
                 text = "GAMEVAULT",
+                modifier = Modifier.offset(y = (-35).dp),
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 2.sp
+                    letterSpacing = 0.sp
                 ),
                 color = Color.White
             )
             Text(
                 text = if (uiState.isLoginMode) "Bienvenido de nuevo" else "Crea tu santuario de juegos",
+                modifier = Modifier.offset(y = (-35).dp),
                 style = MaterialTheme.typography.titleMedium,
                 color = Color.White.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 3. Contenedor del Formulario (Tarjeta Semi-transparente)
+            // Formulario subido y compactado
             Column(
                 modifier = Modifier
+                    .offset(y = (-15).dp) // Sube todo el cuadro
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .background(Color.White.copy(alpha = 0.08f))
-                    .padding(24.dp),
+                    .padding(20.dp), // Padding interno reducido
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Campo Usuario (Animado)
+
+                // Campo de Usuario
                 AnimatedVisibility(
                     visible = !uiState.isLoginMode,
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
                     Column {
-                        //Color de los textField
                         OutlinedTextField(
                             value = uiState.username,
                             onValueChange = { viewModel.onUsernameChanged(it) },
@@ -264,18 +183,17 @@ fun RegisterScreen(
                                 focusedTextColor = Color.White,
                                 unfocusedTextColor = Color.White,
                                 cursorColor = Color.White,
-                                focusedLabelColor = Color.White,
+                                focusedLabelColor = gradientStartColor,
                                 unfocusedLabelColor = Color.Gray,
-                                focusedBorderColor = Color(0xFF6200EE),
+                                focusedBorderColor = gradientStartColor,
                                 unfocusedBorderColor = Color.Gray
                             )
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(8.dp)) // Espacio reducido
                     }
                 }
 
-                // Campo Email
-
+                // Campo de Correo
                 OutlinedTextField(
                     value = uiState.email,
                     onValueChange = viewModel::onEmailChanged,
@@ -291,9 +209,10 @@ fun RegisterScreen(
                         unfocusedBorderColor = Color.Gray
                     )
                 )
-                Spacer(modifier = Modifier.height(12.dp))
 
-                // Campo Contraseña
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Campo de Contraseña
                 OutlinedTextField(
                     value = uiState.password,
                     onValueChange = viewModel::onPasswordChanged,
@@ -311,9 +230,8 @@ fun RegisterScreen(
                     )
                 )
 
-                // Mensaje de Error
                 if (uiState.errorMessage != null) {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = uiState.errorMessage!!,
                         color = MaterialTheme.colorScheme.error,
@@ -323,16 +241,14 @@ fun RegisterScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Botón Principal
-                val gradientStartColor = Color.Red
-                val gradientEndColor = Color.Blue
+                // Botón Principal Degradado
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(55.dp) // Mantenemos la altura
-                        .clip(RoundedCornerShape(16.dp)) // Borde redondeado
+                        .height(55.dp)
+                        .clip(RoundedCornerShape(16.dp))
                         .background(
                             Brush.horizontalGradient(
                                 colors = listOf(gradientStartColor, gradientEndColor)
@@ -343,17 +259,14 @@ fun RegisterScreen(
                     Button(
                         onClick = { viewModel.onRegisterClicked() },
                         modifier = Modifier.fillMaxSize(),
-                        // HACEMOS EL BOTÓN TRANSPARENTE PARA QUE SE VEA EL DEGRADADO DE LA 'BOX'
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.Transparent,
-                            disabledContainerColor = Color.Gray.copy(alpha = 0.5f) // Color cuando está cargando
+                            disabledContainerColor = Color.Gray.copy(alpha = 0.5f)
                         ),
-                        // ELIMINAMOS EL PADDING PREDETERMINADO
                         contentPadding = PaddingValues(0.dp),
-                        enabled = !uiState.isLoading, // Deshabilitar si está cargando
+                        enabled = !uiState.isLoading,
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        // MANEJO DEL ESTADO DE CARGA LOCALMENTE
                         if (uiState.isLoading) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                         } else {
@@ -366,13 +279,12 @@ fun RegisterScreen(
                         }
                     }
                 }
-            } // Fin Tarjeta Formulario
+            } // Fin tarjeta formulario
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 4. Sección de Divisor y Google
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset(y = (-5).dp), // Lo subimos un poco también
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Divider(modifier = Modifier.weight(1f), color = Color.White.copy(alpha = 0.2f))
@@ -385,14 +297,15 @@ fun RegisterScreen(
                 Divider(modifier = Modifier.weight(1f), color = Color.White.copy(alpha = 0.2f))
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Botón de Google Estilizado
+            // Botón de Google
             OutlinedButton(
                 onClick = { launcher.launch(googleSignInClient.signInIntent) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(55.dp),
+                    .height(50.dp) // Reducido a 50dp
+                    .offset(y = (-5).dp),
                 enabled = !uiState.isLoading,
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
@@ -403,7 +316,7 @@ fun RegisterScreen(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(
-                        painter = painterResource(id = R.drawable.logogoogle), // LOGO DE GOOGLE
+                        painter = painterResource(id = R.drawable.logogoogle),
                         contentDescription = null,
                         modifier = Modifier.size(24.dp)
                     )
@@ -412,10 +325,7 @@ fun RegisterScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 5. Interruptor de Modo Inferior
+            // Enlace final
             TextButton(
                 onClick = { viewModel.toggleLoginMode() },
                 modifier = Modifier.fillMaxWidth()
@@ -429,7 +339,7 @@ fun RegisterScreen(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
