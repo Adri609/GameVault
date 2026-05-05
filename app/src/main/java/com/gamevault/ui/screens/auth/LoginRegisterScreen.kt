@@ -1,18 +1,32 @@
 package com.gamevault.ui.screens.auth
 
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
@@ -37,12 +51,13 @@ import kotlinx.coroutines.launch
 @Composable
 fun RegisterScreen(
     viewModel: RegisterViewModel = hiltViewModel(),
-    onNavigateToHome: () -> Unit
+    onNavigateToHome: () -> Unit,
 ) {
-    // Observamos el estado de forma reactiva. Cualquier cambio aquí provocará una recomposición.
+    // Observar el estado de forma reactiva. Cualquier cambio aquí provocará una recomposición.
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
 
     // Efecto secundario: Navegar a la pantalla principal solo si la autenticación es exitosa
     LaunchedEffect(uiState.isSuccess) {
@@ -51,170 +66,254 @@ fun RegisterScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .imePadding()
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        // CABECERA DINÁMICA
-        Text(
-            text = when {
-                uiState.isPasswordResetMode -> "Recuperar Contraseña"
-                uiState.isLoginMode -> "GameVault"
-                else -> "Crea tu cuenta"
-            },
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
+    // DISEÑO DE LA INTERFAZ
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Fondo visual de humos
+        Image(
+            painter = painterResource(id = R.drawable.fondohumos),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
         )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // FORMULARIO
-
-        // Campo de usuario: Exclusivo del modo de Registro normal
-        if (!uiState.isLoginMode && !uiState.isPasswordResetMode) {
-            GameVaultTextField(
-                value = uiState.username,
-                onValueChange = { viewModel.onUsernameChanged(it) },
-                label = "Nombre de usuario"
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
-        // Campo de correo: Visible en todos los modos
-        GameVaultTextField(
-            value = uiState.email,
-            onValueChange = viewModel::onEmailChanged,
-            label = "Correo electrónico"
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Campo de contraseña: Se oculta en el modo de recuperación
-        if (!uiState.isPasswordResetMode) {
-            GameVaultTextField(
-                value = uiState.password,
-                onValueChange = viewModel::onPasswordChanged,
-                label = "Contraseña",
-                visualTransformation = PasswordVisualTransformation()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
-        // ALERTAS Y MENSAJES
-
-        // Sugerencia de recuperación: Aparece tras 3 fallos en el login
-        if (uiState.isLoginMode && uiState.failedLoginAttempts >= 3 && !uiState.isPasswordResetMode) {
-            TextButton(onClick = { viewModel.enterPasswordResetMode() }) {
-                Text(
-                    text = "¿Has olvidado tu contraseña? Recupérala aquí",
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Mensaje de Error genérico devuelto por Firebase
-        if (uiState.errorMessage != null) {
-            Text(
-                text = uiState.errorMessage!!,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(bottom = 8.dp),
-                textAlign = TextAlign.Center
-            )
-        }
-
-        // Aviso de éxito para la recuperación de contraseña
-        if (uiState.isPasswordResetMode && uiState.passwordResetSent) {
-            Text(
-                text = "Correo enviado. Por favor, revisa tu bandeja de entrada y la carpeta de Spam.",
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = 16.dp),
-                textAlign = TextAlign.Center
-            )
-        }
-
-        // BOTÓN DE ACCIÓN PRINCIPAL
-
-        if (uiState.isPasswordResetMode) {
-            // Lógica específica para el botón de recuperación (incluye Cooldown)
-            val isCooldownActive = uiState.resetCountdown > 0
-            val buttonText =
-                if (isCooldownActive) "Reenviar en ${uiState.resetCountdown}s" else "Enviar enlace de recuperación"
-
-            Button(
-                onClick = { viewModel.sendPasswordReset() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                enabled = !isCooldownActive && !uiState.isLoading
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
+        // Filtro oscuro para mejorar el contraste
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Black.copy(alpha = 0.6f), Color.Black.copy(alpha = 0.9f))
                     )
-                } else {
-                    Text(buttonText)
-                }
-            }
-        } else {
-            // Botón estándar para Iniciar Sesión o Registrarse
-            GameVaultButton(
-                text = if (uiState.isLoginMode) "Iniciar Sesión" else "Registrarse",
-                onClick = { viewModel.onRegisterClicked() },
-                isLoading = uiState.isLoading
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // OPCIONES ALTERNATIVAS Y NAVEGACIÓN
-
-        if (!uiState.isPasswordResetMode) {
-            // Bloque visible solo en Login/Registro
-            Text(text = "O", style = MaterialTheme.typography.bodyMedium)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Autenticación con Google
-            OutlinedButton(
-                onClick = {
-                    scope.launch {
-                        signInWithGoogle(context, viewModel)
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                enabled = !uiState.isLoading
-            ) {
-                Text("Continuar con Google")
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Interruptor para alternar entre Login y Registro
-            TextButton(onClick = { viewModel.toggleLoginMode() }) {
-                Text(
-                    text = if (uiState.isLoginMode)
-                        "¿No tienes cuenta? Regístrate aquí"
-                    else
-                        "¿Ya tienes cuenta? Inicia sesión"
                 )
-            }
-        } else {
-            // Bloque visible solo en modo Recuperación
-            Spacer(modifier = Modifier.height(16.dp))
+        )
 
-            // Botón de escape para volver al Login estándar
-            TextButton(onClick = { viewModel.exitPasswordResetMode() }) {
-                Text("Volver al inicio de sesión")
+        // Contenedor principal compacto
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Spacer(modifier = Modifier.height(30.dp))
+
+            // Logo ajustado
+            Image(
+                painter = painterResource(id = R.drawable.logo_pmgbueno),
+                contentDescription = "Logo GameVault",
+                modifier = Modifier
+                    .size(265.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+
+            // Textos de cabecera con offset negativo
+            Text(
+                text = "GAMEVAULT",
+                modifier = Modifier.offset(y = (-35).dp),
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.sp
+                ),
+                color = Color.White
+            )
+            
+            Text(
+                text = when {
+                    uiState.isPasswordResetMode -> "Recuperar Contraseña"
+                    uiState.isLoginMode -> "Bienvenido de nuevo"
+                    else -> "Crea tu santuario de juegos"
+                },
+                modifier = Modifier.offset(y = (-35).dp),
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
+
+            // Tarjeta central del Formulario (Efecto Glassmorphism)
+            Column(
+                modifier = Modifier
+                    .offset(y = (-15).dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White.copy(alpha = 0.08f))
+                    .padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                // LÓGICA DEL FORMULARIO
+
+                // 1. Campo de Usuario (Solo en Registro)
+                AnimatedVisibility(
+                    visible = !uiState.isLoginMode && !uiState.isPasswordResetMode,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Column {
+                        GameVaultTextField(
+                            value = uiState.username,
+                            onValueChange = { viewModel.onUsernameChanged(it) },
+                            label = "Nombre de usuario"
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+
+                // 2. Campo de Correo (Siempre visible)
+                GameVaultTextField(
+                    value = uiState.email,
+                    onValueChange = viewModel::onEmailChanged,
+                    label = "Correo electrónico"
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 3. Campo de Contraseña (Oculto en recuperación)
+                if (!uiState.isPasswordResetMode) {
+                    GameVaultTextField(
+                        value = uiState.password,
+                        onValueChange = viewModel::onPasswordChanged,
+                        label = "Contraseña",
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+                }
+
+                // ALERTAS Y MENSAJES DE ESTADO
+                
+                // Sugerencia de recuperación tras 3 fallos
+                if (uiState.isLoginMode && uiState.failedLoginAttempts >= 3 && !uiState.isPasswordResetMode) {
+                    TextButton(onClick = { viewModel.enterPasswordResetMode() }) {
+                        Text(
+                            text = "¿Has olvidado tu contraseña? Recupérala aquí",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Mensaje de Error genérico
+                if (uiState.errorMessage != null) {
+                    Text(
+                        text = uiState.errorMessage!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 8.dp).fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                // Aviso de éxito de recuperación
+                if (uiState.isPasswordResetMode && uiState.passwordResetSent) {
+                    Text(
+                        text = "Correo enviado. Por favor, revisa tu bandeja de entrada y la carpeta de Spam.",
+                        color = Color(0xFF66C0F4), // Azul clarito visible en fondo oscuro
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // BOTÓN PRINCIPAL (Dinámico)
+                if (uiState.isPasswordResetMode) {
+                    val isCooldownActive = uiState.resetCountdown > 0
+                    val buttonText = if (isCooldownActive) "Reenviar en ${uiState.resetCountdown}s" else "Enviar enlace"
+
+                    Button(
+                        onClick = { viewModel.sendPasswordReset() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(55.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        enabled = !isCooldownActive && !uiState.isLoading
+                    ) {
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                        } else {
+                            Text(buttonText, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                    }
+                } else {
+                    GameVaultButton(
+                        text = if (uiState.isLoginMode) "INICIAR SESIÓN" else "REGISTRARSE",
+                        onClick = { viewModel.onRegisterClicked() },
+                        isLoading = uiState.isLoading
+                    )
+                }
+            } // Fin tarjeta formulario
+
+            //  OPCIONES ALTERNATIVAS Y NAVEGACIÓN
+            
+            if (!uiState.isPasswordResetMode) {
+                // Separador visual
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = (-5).dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = Color.White.copy(alpha = 0.2f))
+                    Text(
+                        text = "o continúa con",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = Color.White.copy(alpha = 0.2f))
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Botón de Google (Lógica moderna de main con diseño de feat)
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            signInWithGoogle(context, viewModel)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .offset(y = (-5).dp),
+                    enabled = !uiState.isLoading,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black
+                    ),
+                    border = null
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(id = R.drawable.logogoogle),
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Google", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
+                }
+
+                // Enlace para alternar Login/Registro
+                TextButton(
+                    onClick = { viewModel.toggleLoginMode() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = if (uiState.isLoginMode) "¿No tienes cuenta? Regístrate aquí" else "¿Ya tienes cuenta? Inicia sesión",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+
+            } else {
+                Spacer(modifier = Modifier.height(8.dp))
+                // Botón de escape para modo Recuperación
+                TextButton(onClick = { viewModel.exitPasswordResetMode() }) {
+                    Text("Volver al inicio de sesión", color = Color.White)
+                }
             }
         }
     }
@@ -261,7 +360,7 @@ private suspend fun signInWithGoogle(
                     com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.createFrom(
                         result.credential.data
                     )
-                // Pasamos el token limpio al ViewModel
+                // Pasar el token limpio al ViewModel
                 viewModel.onGoogleLoginTokenReceived(googleIdTokenCredential.idToken)
             }
 
