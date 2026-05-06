@@ -37,56 +37,53 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import kotlinx.coroutines.launch
 
 /**
- * Pantalla principal de Autenticación de GameVault.
+ * Raíz de la jerarquía de interfaces para los procesos de Identidad y Acceso
  *
- * Gestiona de forma dinámica y reactiva tres flujos distintos sin necesidad de navegar a otras pantallas:
- * 1. **Registro:** Creación de cuenta con usuario, correo y contraseña.
- * 2. **Inicio de sesión:** Acceso con correo y contraseña, o mediante Google (Credential Manager).
- * 3. **Recuperación de contraseña:** Flujo que se activa tras 3 intentos fallidos de inicio de sesión,
- *    adaptando la interfaz para solicitar únicamente el correo electrónico e implementar un cooldown de seguridad.
+ * Emplea un paradigma declarativo y dinámico para conmutar transparentemente entre
+ * tres modalidades sin necesidad de incurrir en transiciones de navegación pesadas:
+ * 1. **Alta de Cuenta:** Captación de credenciales primarias para nuevos usuarios
+ * 2. **Inicio de Sesión:** Autenticación de usuarios preexistentes por credenciales clásicas o delegación a Google Identity
+ * 3. **Gestión de Credenciales (Recuperación):** Flujo preventivo y correctivo expuesto inteligentemente
+ *    tras la reincidencia de fallos de acceso
  *
- * @param viewModel ViewModel inyectado por Hilt que contiene la lógica de negocio y el estado de la UI.
- * @param onNavigateToHome Callback que se ejecuta cuando el usuario se autentica con éxito.
+ * @param viewModel Puente reactivo inyectado que aloja la lógica de dominio y los manejadores de estado
+ * @param onNavigateToHome Función de orden superior ejecutada como efecto secundario una vez completado el protocolo de acceso
  */
 @Composable
 fun RegisterScreen(
     viewModel: RegisterViewModel = hiltViewModel(),
     onNavigateToHome: () -> Unit,
 ) {
-    // Observar el estado de forma reactiva. Cualquier cambio aquí provocará una recomposición.
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val focusManager = LocalFocusManager.current
 
-    // Efecto secundario: Navegar a la pantalla principal solo si la autenticación es exitosa
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
             onNavigateToHome()
         }
     }
 
-    // DISEÑO DE LA INTERFAZ
     Box(modifier = Modifier.fillMaxSize()) {
-        // Fondo visual de humos
         Image(
             painter = painterResource(id = R.drawable.fondohumos),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
-        // Filtro oscuro para mejorar el contraste
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Black.copy(alpha = 0.6f), Color.Black.copy(alpha = 0.9f))
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.6f),
+                            Color.Black.copy(alpha = 0.9f)
+                        )
                     )
                 )
         )
 
-        // Contenedor principal compacto
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -98,7 +95,6 @@ fun RegisterScreen(
         ) {
             Spacer(modifier = Modifier.height(30.dp))
 
-            // Logo ajustado
             Image(
                 painter = painterResource(id = R.drawable.logo_pmgbueno),
                 contentDescription = "Logo GameVault",
@@ -107,7 +103,6 @@ fun RegisterScreen(
                     .align(Alignment.CenterHorizontally)
             )
 
-            // Textos de cabecera con offset negativo
             Text(
                 text = "GAMEVAULT",
                 modifier = Modifier.offset(y = (-35).dp),
@@ -117,7 +112,7 @@ fun RegisterScreen(
                 ),
                 color = Color.White
             )
-            
+
             Text(
                 text = when {
                     uiState.isPasswordResetMode -> "Recuperar Contraseña"
@@ -130,7 +125,6 @@ fun RegisterScreen(
                 textAlign = TextAlign.Center
             )
 
-            // Tarjeta central del Formulario (Efecto Glassmorphism)
             Column(
                 modifier = Modifier
                     .offset(y = (-15).dp)
@@ -141,9 +135,6 @@ fun RegisterScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
-                // LÓGICA DEL FORMULARIO
-
-                // 1. Campo de Usuario (Solo en Registro)
                 AnimatedVisibility(
                     visible = !uiState.isLoginMode && !uiState.isPasswordResetMode,
                     enter = fadeIn(),
@@ -159,7 +150,6 @@ fun RegisterScreen(
                     }
                 }
 
-                // 2. Campo de Correo (Siempre visible)
                 GameVaultTextField(
                     value = uiState.email,
                     onValueChange = viewModel::onEmailChanged,
@@ -167,7 +157,6 @@ fun RegisterScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 3. Campo de Contraseña (Oculto en recuperación)
                 if (!uiState.isPasswordResetMode) {
                     GameVaultTextField(
                         value = uiState.password,
@@ -177,9 +166,6 @@ fun RegisterScreen(
                     )
                 }
 
-                // ALERTAS Y MENSAJES DE ESTADO
-                
-                // Sugerencia de recuperación tras 3 fallos
                 if (uiState.isLoginMode && uiState.failedLoginAttempts >= 3 && !uiState.isPasswordResetMode) {
                     TextButton(onClick = { viewModel.enterPasswordResetMode() }) {
                         Text(
@@ -191,22 +177,32 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Mensaje de Error genérico
                 if (uiState.errorMessage != null) {
                     Text(
                         text = uiState.errorMessage!!,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 8.dp).fillMaxWidth(),
+                        modifier = Modifier
+                            .padding(bottom = 8.dp)
+                            .fillMaxWidth(),
                         textAlign = TextAlign.Center
                     )
                 }
 
-                // Aviso de éxito de recuperación
+                if (uiState.verificationEmailSent && uiState.isLoginMode && uiState.errorMessage == null) {
+                    Text(
+                        text = "¡Registro exitoso! Revisa tu bandeja de entrada y verifica tu cuenta para iniciar sesión.",
+                        color = Color(0xFF66C0F4),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+
                 if (uiState.isPasswordResetMode && uiState.passwordResetSent) {
                     Text(
                         text = "Correo enviado. Por favor, revisa tu bandeja de entrada y la carpeta de Spam.",
-                        color = Color(0xFF66C0F4), // Azul clarito visible en fondo oscuro
+                        color = Color(0xFF66C0F4),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(bottom = 16.dp),
                         textAlign = TextAlign.Center
@@ -215,10 +211,10 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // BOTÓN PRINCIPAL (Dinámico)
                 if (uiState.isPasswordResetMode) {
                     val isCooldownActive = uiState.resetCountdown > 0
-                    val buttonText = if (isCooldownActive) "Reenviar en ${uiState.resetCountdown}s" else "Enviar enlace"
+                    val buttonText =
+                        if (isCooldownActive) "Reenviar en ${uiState.resetCountdown}s" else "Enviar enlace"
 
                     Button(
                         onClick = { viewModel.sendPasswordReset() },
@@ -229,7 +225,10 @@ fun RegisterScreen(
                         enabled = !isCooldownActive && !uiState.isLoading
                     ) {
                         if (uiState.isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White
+                            )
                         } else {
                             Text(buttonText, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
@@ -241,31 +240,33 @@ fun RegisterScreen(
                         isLoading = uiState.isLoading
                     )
                 }
-            } // Fin tarjeta formulario
+            }
 
-            //  OPCIONES ALTERNATIVAS Y NAVEGACIÓN
-            
             if (!uiState.isPasswordResetMode) {
-                // Separador visual
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .offset(y = (-5).dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    HorizontalDivider(modifier = Modifier.weight(1f), color = Color.White.copy(alpha = 0.2f))
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = Color.White.copy(alpha = 0.2f)
+                    )
                     Text(
                         text = "o continúa con",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.5f),
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
-                    HorizontalDivider(modifier = Modifier.weight(1f), color = Color.White.copy(alpha = 0.2f))
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = Color.White.copy(alpha = 0.2f)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Botón de Google (Lógica moderna de main con diseño de feat)
                 OutlinedButton(
                     onClick = {
                         scope.launch {
@@ -295,7 +296,6 @@ fun RegisterScreen(
                     }
                 }
 
-                // Enlace para alternar Login/Registro
                 TextButton(
                     onClick = { viewModel.toggleLoginMode() },
                     modifier = Modifier.fillMaxWidth()
@@ -310,7 +310,6 @@ fun RegisterScreen(
 
             } else {
                 Spacer(modifier = Modifier.height(8.dp))
-                // Botón de escape para modo Recuperación
                 TextButton(onClick = { viewModel.exitPasswordResetMode() }) {
                     Text("Volver al inicio de sesión", color = Color.White)
                 }
@@ -320,15 +319,14 @@ fun RegisterScreen(
 }
 
 /**
- * Lanza el flujo de autenticación nativa de Google utilizando la API de Android Credential Manager.
+ * Implementación de Autenticación Federada de Google utilizando el ecosistema de Credential Manager
  *
- * Sustituye al antiguo `GoogleSignInClient`. Este método moderno solicita al sistema operativo
- * que muestre el selector de cuentas de Google del usuario. Si el usuario selecciona una,
- * extrae el token de identidad (ID Token) y lo envía al [RegisterViewModel] para que Firebase
- * complete la autenticación.
+ * Sustituye implementaciones legadas mediante la invocación de las interfaces nativas de Android, garantizando
+ * una mayor privacidad y retención del usuario En caso de delegación exitosa de identidad,
+ * se aísla el token JWT para delegar la autorización resolutiva en el [RegisterViewModel]
  *
- * @param context Contexto necesario para invocar el CredentialManager y obtener los recursos.
- * @param viewModel Referencia al ViewModel para procesar el token devuelto.
+ * @param context Entorno operativo requerido para el despliegue de modales del sistema
+ * @param viewModel Objeto receptor y responsable de emitir las transacciones con el backend de Firebase
  */
 private suspend fun signInWithGoogle(
     context: android.content.Context,
@@ -336,31 +334,22 @@ private suspend fun signInWithGoogle(
 ) {
     try {
         val credentialManager = CredentialManager.create(context)
-
-        // El ID del cliente web (obtenido desde google-services.json)
         val webClientId = context.getString(R.string.default_web_client_id)
-
-        // Configurar la petición específica para cuentas de Google
         val googleIdOption = GetGoogleIdOption.Builder()
             .setFilterByAuthorizedAccounts(false)
             .setServerClientId(webClientId)
             .build()
-
         val request = GetCredentialRequest.Builder()
             .addCredentialOption(googleIdOption)
             .build()
-
-        // Lanzar la UI nativa del sistema operativo para elegir cuenta
         val result = credentialManager.getCredential(context, request)
 
-        // Verificar y procesar la respuesta
         when (result.credential.type) {
             com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL -> {
                 val googleIdTokenCredential =
                     com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.createFrom(
                         result.credential.data
                     )
-                // Pasar el token limpio al ViewModel
                 viewModel.onGoogleLoginTokenReceived(googleIdTokenCredential.idToken)
             }
 
@@ -369,7 +358,6 @@ private suspend fun signInWithGoogle(
             }
         }
     } catch (e: GetCredentialException) {
-        // El usuario canceló el diálogo u ocurrió un problema con el proveedor
         Log.e("GoogleSignIn", "Error al obtener credencial: ${e.localizedMessage}")
     } catch (e: Exception) {
         Log.e("GoogleSignIn", "Error inesperado durante Google Sign-In: ${e.localizedMessage}")
