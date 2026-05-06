@@ -119,7 +119,6 @@ fun ManageVaultBottomSheet(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Valoración y Favorito
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -133,8 +132,8 @@ fun ManageVaultBottomSheet(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     StarRatingBar(
-                        rating = currentRating,
-                        onRatingChanged = { currentRating = it }
+                        rating = currentRating?.toDouble() ?: 0.0,
+                        onRatingChanged = { currentRating = it.toFloat() }
                     )
                 }
 

@@ -2,9 +2,7 @@ package com.gamevault.ui.screens.search
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.Warning
@@ -14,23 +12,30 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.gamevault.R
 import com.gamevault.utils.Resource
 import com.gamevault.ui.components.GameGrid
 import com.gamevault.ui.components.SearchInputField
+import com.gamevault.ui.theme.accentColor
+import com.gamevault.ui.theme.backgroundColor
+import com.gamevault.ui.theme.surfaceColor
 
 /**
- * Pantalla de búsqueda mejorada con estilo Premium oscuro.
+ * Pantalla principal de búsqueda de videojuegos.
+ *
+ * Permite al usuario introducir consultas de texto para buscar juegos en el catálogo,
+ * gestionando de forma reactiva los diferentes estados de la petición (inicial, carga, éxito y error).
+ * Además, provee accesos rápidos para añadir juegos a la bóveda personal desde los propios resultados.
+ *
+ * @param onNavigateToGameDetail Callback ejecutado cuando el usuario selecciona un juego; recibe el ID del mismo.
+ * @param viewModel ViewModel inyectado por Hilt que contiene la lógica y el estado del flujo de búsqueda.
  */
 @Composable
 fun SearchScreen(
@@ -40,10 +45,7 @@ fun SearchScreen(
     val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current
 
-    // --- COLORES DEL TEMA ---
-    val backgroundColor = Color(0xFF0D0D12)
-    val accentColor = Color(0xFF03DAC6)
-    val surfaceColor = Color(0xFF1A1A24)
+
 
     Column(
         modifier = Modifier
@@ -51,8 +53,8 @@ fun SearchScreen(
             .background(backgroundColor)
             .padding(horizontal = 16.dp)
     ) {
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // --- BARRA DE BÚSQUEDA ---
         SearchInputField(
             query = state.query,
             onQueryChange = { viewModel.onQueryChange(it) },
@@ -66,17 +68,13 @@ fun SearchScreen(
                 .padding(bottom = 16.dp)
         )
 
-        // --- GESTIÓN DE BÚSQUEDA ---
         when (val results = state.results) {
-
-            // 1. ESTADO DE CARGA
             is Resource.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = accentColor)
                 }
             }
 
-            // 2. ESTADO DE ERROR
             is Resource.Error -> {
                 SearchStateMessage(
                     icon = Icons.Outlined.Warning,
@@ -94,7 +92,6 @@ fun SearchScreen(
                 }
             }
 
-            // 3. ESTADO DE ÉXITO
             is Resource.Success -> {
                 val games = results.data ?: emptyList()
                 if (games.isEmpty()) {
@@ -115,7 +112,6 @@ fun SearchScreen(
                 }
             }
 
-            // 4. ESTADO INICIAL
             null -> {
                 SearchStateMessage(
                     icon = Icons.Outlined.SportsEsports,
@@ -127,7 +123,16 @@ fun SearchScreen(
     }
 }
 
-//MENSAJES DE ERROR
+/**
+ * Componente visual de apoyo utilizado para representar los distintos estados
+ * no exitosos o informativos de la pantalla de búsqueda (estado inicial, sin resultados o error).
+ *
+ * @param icon Icono vectorial que ilustra el estado actual de la pantalla.
+ * @param title Título principal del mensaje de estado.
+ * @param subtitle Texto secundario con una explicación más detallada.
+ * @param iconTint Color aplicado al icono (por defecto un blanco semitransparente).
+ * @param extraContent Slot componible opcional para incluir acciones adicionales (ej. un botón de reintento).
+ */
 @Composable
 fun SearchStateMessage(
     icon: ImageVector,
@@ -166,7 +171,7 @@ fun SearchStateMessage(
                 textAlign = TextAlign.Center
             )
 
-            extraContent() // Para añadir botones extra, como el de "Reintentar"
+            extraContent()
         }
     }
 }

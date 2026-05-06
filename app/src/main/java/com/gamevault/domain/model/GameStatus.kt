@@ -21,7 +21,7 @@ enum class GameStatus(val displayName: String) {
     /** El juego está comprado/obtenido pero aún no se ha empezado. */
     PENDING("Pendiente"),
 
-    /** El usuario empezó el juego pero decidió no terminarlo. */
+    /** El usuario empezó el juego, pero decidió no terminarlo. */
     DROPPED("Abandonado"),
 
     /** El juego no está en posesión del usuario, pero lo quiere en un futuro. */

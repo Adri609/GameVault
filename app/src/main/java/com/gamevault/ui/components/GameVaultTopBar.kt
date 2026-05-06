@@ -27,18 +27,20 @@ import androidx.compose.ui.layout.positionInRoot
 /**
  * Barra superior principal de la aplicación.
  *
- * Muestra el logotipo de GameVault y el avatar del usuario. También gestiona la
- * posición global del avatar para anclar correctamente el menú emergente [ProfileMenuOverlay].
+ * Muestra el logotipo de GameVault y el avatar del usuario. Además, acepta un bloque
+ * de componentes extra (como menús de filtrado) que se dibujarán justo antes de la foto de perfil.
  *
- * @param profilePictureUrl URL de la foto de perfil del usuario (puede ser null).
- * @param onProfileClick Callback invocado cuando el usuario selecciona "Mi Perfil" en el menú.
- * @param onSettingsClick Callback invocado cuando el usuario selecciona "Configuración" en el menú.
- * @param onSignOutClick Callback invocado cuando el usuario selecciona "Cerrar Sesión" en el menú.
+ * @param profilePictureUrl URL de la foto de perfil del usuario.
+ * @param extraActions Slot componible para inyectar botones o menús dinámicos dependientes de la pantalla actual.
+ * @param onProfileClick Callback invocado al seleccionar "Mi Perfil".
+ * @param onSettingsClick Callback invocado al seleccionar "Configuración".
+ * @param onSignOutClick Callback invocado al seleccionar "Cerrar Sesión".
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameVaultTopBar(
     profilePictureUrl: String?,
+    extraActions: @Composable RowScope.() -> Unit = {},
     onProfileClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onSignOutClick: () -> Unit,
@@ -48,10 +50,7 @@ fun GameVaultTopBar(
 
     val avatarScale by animateFloatAsState(
         targetValue = if (showMenu) 0.88f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessHigh
-        ),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
         label = "avatarScale"
     )
     val avatarGlow by animateFloatAsState(
@@ -62,9 +61,7 @@ fun GameVaultTopBar(
 
     TopAppBar(
         modifier = Modifier.drawWithContent {
-
             drawContent()
-
             val strokeWidth = 1.dp.toPx()
             val y = size.height - strokeWidth / 2
             drawLine(
@@ -89,67 +86,66 @@ fun GameVaultTopBar(
                     text = "GameVault",
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .align(Alignment.CenterVertically)
-                        .padding(start = 8.dp)
+                    modifier = Modifier.align(Alignment.CenterVertically).padding(start = 8.dp)
                 )
             }
-
         },
         actions = {
-            Box(
-                modifier = Modifier.padding(end = 8.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                IconButton(
-                    onClick = { showMenu = true },
-                    modifier = Modifier
-                        .scale(avatarScale)
-                        .onGloballyPositioned { coordinates ->
-                            if (!showMenu) {
-                                anchorPosition = coordinates.positionInRoot()
+            Row(verticalAlignment = Alignment.CenterVertically) {
+
+                // Renderiza los botones dinámicos inyectados
+                extraActions()
+
+                Box(
+                    modifier = Modifier.padding(end = 8.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    IconButton(
+                        onClick = { showMenu = true },
+                        modifier = Modifier
+                            .scale(avatarScale)
+                            .onGloballyPositioned { coordinates ->
+                                if (!showMenu) {
+                                    anchorPosition = coordinates.positionInRoot()
+                                }
+                            }
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .border(
+                                    width = (1.5f + avatarGlow * 1.5f).dp,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f + avatarGlow * 0.5f),
+                                    shape = CircleShape
+                                )
+                                .padding(2.dp)
+                        ) {
+                            if (!profilePictureUrl.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = profilePictureUrl,
+                                    contentDescription = "Perfil",
+                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = "Perfil",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.fillMaxSize()
+                                )
                             }
                         }
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .border(
-                                width = (1.5f + avatarGlow * 1.5f).dp,
-                                color = MaterialTheme.colorScheme.primary.copy(
-                                    alpha = 0.4f + avatarGlow * 0.5f
-                                ),
-                                shape = CircleShape
-                            )
-                            .padding(2.dp)
-                    ) {
-                        if (!profilePictureUrl.isNullOrBlank()) {
-                            AsyncImage(
-                                model = profilePictureUrl,
-                                contentDescription = "Perfil",
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Perfil",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
                     }
+                    ProfileMenuOverlay(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                        onProfileClick = onProfileClick,
+                        onSettingsClick = onSettingsClick,
+                        onSignOutClick = onSignOutClick,
+                        anchorPosition = anchorPosition,
+                    )
                 }
-                ProfileMenuOverlay(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false },
-                    onProfileClick = onProfileClick,
-                    onSettingsClick = onSettingsClick,
-                    onSignOutClick = onSignOutClick,
-                    anchorPosition = anchorPosition,
-                )
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
