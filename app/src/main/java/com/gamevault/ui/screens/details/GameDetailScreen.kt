@@ -13,6 +13,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,15 +27,21 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.gamevault.utils.Resource
+import com.gamevault.domain.model.GameStatus
 import com.gamevault.ui.components.AchievementItem
 import com.gamevault.ui.components.FadingBlurredBackground
+import com.gamevault.ui.components.ManageVaultBottomSheet
 import com.gamevault.ui.components.MetadataBlock
+import com.gamevault.utils.Resource
 import com.gamevault.utils.formatReleaseDate
 import java.util.Locale
 
 /**
- * Pantalla de detalle de un videojuego que muestra información extendida, sinopsis y permite añadirlo a la bóveda.
+ * Pantalla de detalle de un videojuego que muestra información extendida, sinopsis y permite
+ * gestionar su estado en la bóveda o añadirlo a deseados si aún no se ha lanzado.
+ *
+ * @param navController Controlador de navegación para volver atrás.
+ * @param viewModel ViewModel inyectado por Hilt que maneja el estado y la lógica de negocio.
  */
 @Composable
 fun GameDetailScreen(
@@ -42,33 +51,53 @@ fun GameDetailScreen(
     val state by viewModel.state.collectAsState()
     val isSaved by viewModel.isSaved.collectAsState()
 
+    // Observar los datos locales del juego si ya está en la bóveda
+    val localGame by viewModel.localVaultGame.collectAsState()
+
+    // Estado para controlar la visibilidad del BottomSheet de gestión
+    var showManageVaultSheet by remember { mutableStateOf(false) }
+
     when (val resource = state.game) {
         is Resource.Loading -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         }
+
         is Resource.Error -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = resource.message ?: "Error", color = MaterialTheme.colorScheme.error)
-                    TextButton(onClick = { viewModel.toggleHiddenAchievements() }) { // Temporal use for retry? No.
-                         // Should have a retry function
+                    Text(
+                        text = resource.message ?: "Error",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    // TODO: Implementar función de reintento
+                    TextButton(onClick = { /* retry action */ }) {
+                        Text("Reintentar")
                     }
                 }
             }
         }
+
         is Resource.Success -> {
             val currentGame = resource.data ?: return
-            
-            // Lógica para saber si el juego es un lanzamiento futuro
+
             val currentTimestamp = System.currentTimeMillis() / 1000
-            val isUnreleased = currentGame.releaseDate != null && currentGame.releaseDate > currentTimestamp
+            val isUnreleased =
+                currentGame.releaseDate != null && currentGame.releaseDate > currentTimestamp
 
             Scaffold(
                 floatingActionButton = {
                     ExtendedFloatingActionButton(
-                        onClick = { viewModel.toggleVaultState() },
+                        onClick = {
+                            if (isUnreleased) {
+                                // Acción rápida: Toggle (Añadir/Quitar) como deseado
+                                viewModel.toggleUnreleasedVaultState()
+                            } else {
+                                // Acción completa: Abrir panel de gestión
+                                showManageVaultSheet = true
+                            }
+                        },
                         containerColor = if (isSaved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                         contentColor = if (isSaved) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                         icon = {
@@ -144,7 +173,13 @@ fun GameDetailScreen(
                                 Spacer(modifier = Modifier.height(4.dp))
                                 currentGame.rating?.let {
                                     Text(
-                                        text = "⭐ ${String.format(Locale.getDefault(), "%.1f", it / 10)}/10",
+                                        text = "⭐ ${
+                                            String.format(
+                                                androidx.compose.ui.text.intl.Locale.current.platformLocale,
+                                                "%.1f",
+                                                it / 10
+                                            )
+                                        }/10",
                                         color = Color(0xFFFFD700),
                                         fontWeight = FontWeight.Bold
                                     )
@@ -158,10 +193,16 @@ fun GameDetailScreen(
                         MetadataBlock(title = "Plataformas", items = currentGame.platforms)
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        Text("Sinopsis", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp)
+                        Text(
+                            "Sinopsis",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 18.sp
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = currentGame.summary ?: "No hay sinopsis disponible para este juego.",
+                            text = currentGame.summary
+                                ?: "No hay sinopsis disponible para este juego.",
                             color = Color.White.copy(alpha = 0.85f),
                             lineHeight = 24.sp,
                             fontSize = 15.sp
@@ -226,6 +267,25 @@ fun GameDetailScreen(
                         )
                     }
                 }
+            }
+
+            // Muestra el panel inferior si el estado es true
+            if (showManageVaultSheet) {
+                ManageVaultBottomSheet(
+                    initialStatus = localGame?.status ?: GameStatus.NONE,
+                    initialRating = localGame?.personalRating,
+                    initialFavorite = localGame?.isFavorite ?: false,
+                    isAlreadySaved = isSaved,
+                    onDismissRequest = { showManageVaultSheet = false },
+                    onSave = { status, rating, isFavorite ->
+                        viewModel.saveVaultEntry(status, rating, isFavorite)
+                        showManageVaultSheet = false
+                    },
+                    onRemove = {
+                        viewModel.removeFromVault()
+                        showManageVaultSheet = false
+                    }
+                )
             }
         }
     }

@@ -7,7 +7,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.Warning
@@ -30,6 +29,16 @@ import com.gamevault.utils.Resource
 import com.gamevault.ui.components.GameGrid
 import com.gamevault.ui.components.SearchInputField
 
+/**
+ * Pantalla principal de búsqueda de videojuegos.
+ *
+ * Permite al usuario introducir consultas de texto para buscar juegos en el catálogo,
+ * gestionando de forma reactiva los diferentes estados de la petición (inicial, carga, éxito y error).
+ * Además, provee accesos rápidos para añadir juegos a la bóveda personal desde los propios resultados.
+ *
+ * @param onNavigateToGameDetail Callback ejecutado cuando el usuario selecciona un juego; recibe el ID del mismo.
+ * @param viewModel ViewModel inyectado por Hilt que contiene la lógica y el estado del flujo de búsqueda.
+ */
 @Composable
 fun SearchScreen(
     onNavigateToGameDetail: (Long) -> Unit,
@@ -38,7 +47,7 @@ fun SearchScreen(
     val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current
 
-    // --- DETECCIÓN DE MODO CLARO / OSCURO ---
+    // DETECCIÓN DE MODO CLARO / OSCURO
     val isDarkTheme = isSystemInDarkTheme()
 
     // Colores
@@ -54,10 +63,9 @@ fun SearchScreen(
             .background(backgroundColor)
             .padding(horizontal = 16.dp)
     ) {
-
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- BARRA DE BÚSQUEDA ---
+        // BARRA DE BÚSQUEDA
         SearchInputField(
             query = state.query,
             onQueryChange = { viewModel.onQueryChange(it) },
@@ -71,7 +79,7 @@ fun SearchScreen(
                 .padding(bottom = 16.dp)
         )
 
-        // --- GESTIÓN DE ESTADOS ---
+        // GESTIÓN DE ESTADOS
         Crossfade(
             targetState = state.results,
             animationSpec = tween(500),
@@ -144,7 +152,19 @@ fun SearchScreen(
     }
 }
 
-// MENSAJES DE ESTADO
+/**
+ * Componente visual de apoyo utilizado para representar los distintos estados
+ * no exitosos o informativos de la pantalla de búsqueda (estado inicial, sin resultados o error).
+ *
+ * @param icon Icono vectorial que ilustra el estado actual de la pantalla.
+ * @param title Título principal del mensaje de estado.
+ * @param subtitle Texto secundario con una explicación más detallada.
+ * @param textColor Color del texto principal (adaptable al tema).
+ * @param secondaryTextColor Color del texto secundario (adaptable al tema).
+ * @param iconTint Color aplicado al icono.
+ * @param surfaceColor Color del fondo del contenedor del icono (adaptable al tema).
+ * @param extraContent Slot componible opcional para incluir acciones adicionales (ej. un botón de reintento).
+ */
 @Composable
 fun SearchStateMessage(
     icon: ImageVector,
@@ -162,7 +182,9 @@ fun SearchStateMessage(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp).offset(y = (-40).dp) // Sube un poco el bloque al centro visual
+            modifier = Modifier
+                .padding(32.dp)
+                .offset(y = (-40).dp)
         ) {
             Box(
                 modifier = Modifier
@@ -193,6 +215,7 @@ fun SearchStateMessage(
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center
             )
+
             extraContent()
         }
     }

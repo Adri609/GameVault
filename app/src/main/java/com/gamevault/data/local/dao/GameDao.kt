@@ -12,6 +12,13 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface GameDao {
+
+    /**
+     * Obtiene un juego específico de la bóveda para observar sus cambios (nota, estado, etc).
+     */
+    @Query("SELECT * FROM favorite_games WHERE id = :gameId AND userId = :userId LIMIT 1")
+    fun getGameById(gameId: Long, userId: String): Flow<GameEntity?>
+
     /**
      * Obtiene todos los juegos de la bóveda para un usuario específico.
      */
