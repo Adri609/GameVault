@@ -71,7 +71,7 @@ class GameDetailViewModel @Inject constructor(
 
     /**
      * Observa los datos del juego directamente desde la base de datos local si existe.
-     * Útil para recuperar el estado, nota personal y favorito guardados previamente.
+     * Útil para recuperar el estado, nota personal y favorito guardados previamente sin sobrescribirlos.
      */
     val localVaultGame: StateFlow<Game?> = auth.currentUser?.uid?.let { userId ->
         gameDao.getGameById(gameId, userId).map { it?.toDomainModel() }
@@ -102,7 +102,6 @@ class GameDetailViewModel @Inject constructor(
                     _state.update { it.copy(game = Resource.Error("No se encontró el juego")) }
                 }
             } catch (e: Exception) {
-                // CORRECCIÓN: Usamos la variable 'e' para que no dé warning y nos sirva en el logcat
                 e.printStackTrace()
                 _state.update { it.copy(game = Resource.Error("Error al cargar los detalles")) }
             }
@@ -117,14 +116,35 @@ class GameDetailViewModel @Inject constructor(
     }
 
     /**
+     * Acción rápida para alternar el Favorito desde un botón en la UI
+     * (Sin pasar por el BottomSheet).
+     */
+    fun toggleFavoriteQuickAction() {
+        viewModelScope.launch {
+            try {
+                val baseGame = localVaultGame.value ?: _state.value.game.data ?: return@launch
+
+                val updatedGame = baseGame.copy(
+                    isFavorite = !baseGame.isFavorite,
+                    status = if (baseGame.status == GameStatus.NONE) GameStatus.NONE else baseGame.status
+                )
+
+                saveVaultEntryUseCase(updatedGame)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    /**
      * Acción rápida utilizada EXCLUSIVAMENTE para juegos no lanzados.
      * Añade o elimina el juego de la bóveda actuando como un interruptor.
      */
     fun toggleUnreleasedVaultState() {
-        val currentGame = _state.value.game.data ?: return
         viewModelScope.launch {
             try {
-                val gameToSave = currentGame.copy(status = GameStatus.WISHLIST)
+                val baseGame = localVaultGame.value ?: _state.value.game.data ?: return@launch
+                val gameToSave = baseGame.copy(status = GameStatus.WISHLIST)
                 toggleVaultUseCase(gameToSave)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -141,11 +161,11 @@ class GameDetailViewModel @Inject constructor(
      * @param isFavorite Bandera que marca si es favorito.
      */
     fun saveVaultEntry(status: GameStatus, rating: Float?, isFavorite: Boolean) {
-        // Tomamos como base los datos de la API
-        val currentGame = _state.value.game.data ?: return
         viewModelScope.launch {
             try {
-                val updatedGame = currentGame.copy(
+                val baseGame = localVaultGame.value ?: _state.value.game.data ?: return@launch
+
+                val updatedGame = baseGame.copy(
                     status = status,
                     personalRating = rating,
                     isFavorite = isFavorite
@@ -161,10 +181,9 @@ class GameDetailViewModel @Inject constructor(
      * Elimina explícitamente el juego de la bóveda.
      */
     fun removeFromVault() {
-        val currentGame = _state.value.game.data ?: return
+        val currentGame = localVaultGame.value ?: _state.value.game.data ?: return
         viewModelScope.launch {
             try {
-                // Al estar ya guardado, ToggleVaultUseCase hará la eliminación en Room y Firebase
                 toggleVaultUseCase(currentGame)
             } catch (e: Exception) {
                 e.printStackTrace()

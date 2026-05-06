@@ -28,7 +28,6 @@ class ToggleVaultUseCase @Inject constructor(
             // Eliminar de remoto
             firestoreRepository.deleteGame(game.id)
         } else {
-            // Preparar el DTO para Firebase
             val firebaseGame = FirebaseGameDto(
                 id = game.id,
                 name = game.name,
@@ -37,13 +36,16 @@ class ToggleVaultUseCase @Inject constructor(
                 steamId = game.steamId,
                 rating = game.rating,
                 genres = game.genres,
-                platforms = game.platforms
+                platforms = game.platforms,
+                status = game.status.name,
+                personalRating = game.personalRating,
+                favorite = game.isFavorite
             )
 
             // Intentar guardar en remoto primero o en paralelo
             val remoteResult = firestoreRepository.saveGame(firebaseGame)
 
-            // Guardar en local con el estado de sincronización correspondiente
+            // El juego es nuevo, así que dateAdded será el tiempo actual
             val entity = GameEntity(
                 id = game.id,
                 userId = userId,
@@ -55,8 +57,18 @@ class ToggleVaultUseCase @Inject constructor(
                 platforms = game.platforms,
                 summary = game.summary,
                 steamId = game.steamId,
-                isSynced = remoteResult.isSuccess
+                isSynced = remoteResult.isSuccess,
+                status = game.status,
+                personalRating = game.personalRating,
+                isFavorite = game.isFavorite
             )
+
+            if (remoteResult.isSuccess) {
+                android.util.Log.d("ToggleVault", "Juego agregado exitosamente: ${game.name}")
+            } else {
+                android.util.Log.e("ToggleVault", "Error agregando juego a Firestore: ${game.name}")
+            }
+
             gameDao.insertGame(entity)
         }
     }

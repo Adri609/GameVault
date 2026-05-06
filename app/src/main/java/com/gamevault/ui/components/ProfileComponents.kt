@@ -25,6 +25,10 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.gamevault.domain.model.Game
 
+/**
+ * Cabecera principal del Perfil de usuario.
+ * Combina la presentación visual de la identidad con la interfaz de edición cuando es requerida.
+ */
 @Composable
 fun ProfileHeader(
     url: String,
@@ -133,27 +137,112 @@ fun ProfileHeader(
     }
 }
 
+/**
+ * Tarjeta individual que muestra una métrica del usuario de forma destacada (Ej: "Juegos Totales: 14").
+ */
 @Composable
-fun StatCard(modifier: Modifier = Modifier, label: String, value: String, icon: ImageVector) {
+fun StatCard(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: String,
+    icon: ImageVector,
+    iconTint: Color = MaterialTheme.colorScheme.primary
+) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     ) {
         Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-            Text(value, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
             Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
+/**
+ * Barra de progreso interactiva que desglosa el estado de la colección (Completados, Jugando, Pendientes).
+ *
+ * @param total Total de juegos en la colección.
+ * @param completed Cantidad de juegos completados (Barra dorada).
+ * @param playing Cantidad de juegos en progreso (Barra primaria).
+ * @param cardColor Color semitransparente unificado de la tarjeta.
+ */
+@Composable
+fun BacklogProgressCard(
+    total: Int,
+    completed: Int,
+    playing: Int,
+    cardColor: Color
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            SectionTitle("Progreso de la Colección")
+
+            // Contenedor principal de la barra (Píldora)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(50)), // Bordes totalmente redondeados
+                horizontalArrangement = Arrangement.spacedBy(2.dp) // Pequeño espacio entre colores
+            ) {
+                if (total == 0) {
+                    // Estado vacío
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight().background(Color.Gray.copy(alpha = 0.2f)))
+                } else {
+                    if (completed > 0) {
+                        Box(modifier = Modifier.weight(completed.toFloat()).fillMaxHeight().background(Color(0xFFFFC107)))
+                    }
+                    if (playing > 0) {
+                        Box(modifier = Modifier.weight(playing.toFloat()).fillMaxHeight().background(MaterialTheme.colorScheme.primary))
+                    }
+                    val remaining = total - completed - playing
+                    if (remaining > 0) {
+                        Box(modifier = Modifier.weight(remaining.toFloat()).fillMaxHeight().background(Color.Gray.copy(alpha = 0.3f)))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Leyenda de colores explicativa
+            val remaining = if (total > 0) total - completed - playing else 0
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                LegendItem(color = Color(0xFFFFC107), label = "Completados", count = completed)
+                LegendItem(color = MaterialTheme.colorScheme.primary, label = "Jugando", count = playing)
+                LegendItem(color = Color.Gray.copy(alpha = 0.5f), label = "Pendientes", count = remaining)
+            }
+        }
+    }
+}
+
+/** Componente auxiliar para pintar los puntitos de colores de la leyenda del Backlog. */
+@Composable
+private fun LegendItem(color: Color, label: String, count: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(color))
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(text = "$label ($count)", fontSize = 12.sp, color = Color.White)
+    }
+}
+
+/** Tarjeta interactiva que expone un resumen rápido del último juego introducido en la colección. */
 @Composable
 fun LastAddedCard(game: Game, onClick: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
@@ -171,6 +260,7 @@ fun LastAddedCard(game: Game, onClick: () -> Unit) {
     }
 }
 
+/** Título de sección estandarizado para separar visualmente los distintos bloques del Perfil. */
 @Composable
 fun SectionTitle(title: String) {
     Text(
@@ -182,6 +272,7 @@ fun SectionTitle(title: String) {
     )
 }
 
+/** Contenedor circular con icono utilizado primordialmente para representar enlaces a Redes Sociales. */
 @Composable
 fun SocialIcon(painter: Painter, color: Color, onClick: () -> Unit = {}) {
     Surface(

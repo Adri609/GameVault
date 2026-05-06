@@ -20,7 +20,7 @@ import com.gamevault.R
 /**
  * Define las redes sociales soportadas por la aplicación.
  * Encapsula la información visual (icono, color, etiqueta) y la lógica de acción
- * específica de cada plataforma (navegar a web vs mostrar Toast).
+ * específica de cada plataforma (navegar a web vs. mostrar Toast).
  */
 enum class SocialPlatform(
     val label: String,
@@ -41,7 +41,6 @@ enum class SocialPlatform(
     },
     DISCORD("Usuario de Discord", R.drawable.ic_discord, Color(0xFF5865F2)) {
         override fun performAction(context: Context, username: String) {
-            // Discord no tiene perfiles web públicos, así que mostramos el nombre
             Toast.makeText(context, "Usuario Discord: $username", Toast.LENGTH_SHORT).show()
         }
     };
@@ -98,8 +97,6 @@ fun SocialActionIcon(
 ) {
     val context = LocalContext.current
 
-    // Asumo que ya tienes un componente 'SocialIcon' que acepta un painter, color y onClick.
-    // Si no es así, puedes usar un IconButton estándar de Material3 aquí.
     SocialIcon(
         painter = painterResource(id = platform.iconRes),
         color = platform.brandColor,

@@ -6,6 +6,7 @@ import com.gamevault.data.remote.model.FirebaseGameDto
 import com.gamevault.data.repository.FirestoreRepository
 import com.gamevault.domain.model.Game
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 /**
@@ -27,6 +28,13 @@ class SaveVaultEntryUseCase @Inject constructor(
     suspend operator fun invoke(game: Game) {
         val userId = auth.currentUser?.uid ?: return
 
+        // Obtener el juego existente de la base de datos local para preservar campos como dateAdded
+        val existingGame = try {
+            gameDao.getGameById(game.id, userId).first()
+        } catch (e: Exception) {
+            null
+        }
+
         val firebaseGame = FirebaseGameDto(
             id = game.id,
             name = game.name,
@@ -38,10 +46,13 @@ class SaveVaultEntryUseCase @Inject constructor(
             platforms = game.platforms,
             status = game.status.name,
             personalRating = game.personalRating,
-            isFavorite = game.isFavorite
+            favorite = game.isFavorite
         )
 
         val remoteResult = firestoreRepository.saveGame(firebaseGame)
+
+        // Preservar el dateAdded original si el juego ya existe
+        val dateAdded = existingGame?.dateAdded ?: System.currentTimeMillis()
 
         val entity = GameEntity(
             id = game.id,
@@ -52,6 +63,7 @@ class SaveVaultEntryUseCase @Inject constructor(
             releaseDate = game.releaseDate,
             genres = game.genres,
             platforms = game.platforms,
+            dateAdded = dateAdded,
             summary = game.summary,
             steamId = game.steamId,
             isSynced = remoteResult.isSuccess,
@@ -59,6 +71,14 @@ class SaveVaultEntryUseCase @Inject constructor(
             personalRating = game.personalRating,
             isFavorite = game.isFavorite
         )
+
+        // Log para verificar sincronización
+        if (remoteResult.isSuccess) {
+            android.util.Log.d("SaveVaultEntry", "Juego guardado exitosamente: ${game.name}, Favorito: ${game.isFavorite}")
+        } else {
+            android.util.Log.e("SaveVaultEntry", "Error guardando en Firestore: ${game.name}")
+        }
+
         gameDao.insertGame(entity)
     }
 }

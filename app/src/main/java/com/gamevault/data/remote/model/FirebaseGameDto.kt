@@ -1,5 +1,7 @@
 package com.gamevault.data.remote.model
 
+import com.google.firebase.firestore.PropertyName
+
 /**
  * Representación de un videojuego para almacenar en la base de datos NoSQL (Firebase Firestore).
  *
@@ -17,7 +19,7 @@ package com.gamevault.data.remote.model
  * @param addedAt Fecha en la que el usuario añadió el juego a su bóveda (timestamp).
  * @param status Estado de progreso del usuario con el juego (Guardado como String para evitar problemas de migración de Enums en Firebase).
  * @param personalRating Nota otorgada por el usuario al juego (de 1.0 a 5.0). Nulo si no lo ha valorado.
- * @param isFavorite Bandera que indica si el juego está marcado como favorito por el usuario.
+ * @param favorite Bandera que indica si el juego está marcado como favorito por el usuario. Se mapea desde el campo 'favorite' en Firestore.
  */
 data class FirebaseGameDto(
     val id: Long = 0,
@@ -31,5 +33,6 @@ data class FirebaseGameDto(
     val addedAt: Long = System.currentTimeMillis(),
     val status: String = "NONE",
     val personalRating: Float? = null,
-    val isFavorite: Boolean = false
+    @PropertyName("favorite")
+    val favorite: Boolean = false
 )

@@ -7,6 +7,7 @@ import com.gamevault.data.repository.FirestoreRepository
 import com.gamevault.data.repository.IgdbRepository
 import com.gamevault.domain.model.GameStatus
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -51,10 +52,13 @@ class SyncVaultUseCase @Inject constructor(
                     // Parámetros de personalización mapeados a Firestore
                     status = entity.status.name,
                     personalRating = entity.personalRating,
-                    isFavorite = entity.isFavorite
+                    favorite = entity.isFavorite
                 )
                 firestoreRepository.saveGame(dto).onSuccess {
                     gameDao.insertGame(entity.copy(isSynced = true))
+                    android.util.Log.d("SyncVault", "Juego sincronizado: ${entity.name}, Favorito: ${entity.isFavorite}")
+                }.onFailure { error ->
+                    android.util.Log.e("SyncVault", "Error sincronizando juego ${entity.name}: ${error.message}")
                 }
             }
 
@@ -70,6 +74,13 @@ class SyncVaultUseCase @Inject constructor(
                 } else emptyList()
 
                 cloudGames.forEach { dto ->
+                    // Obtener el juego existente para preservar dateAdded
+                    val existingEntity = try {
+                        gameDao.getGameById(dto.id, userId).first()
+                    } catch (e: Exception) {
+                        null
+                    }
+
                     val repairInfo = repairedMetadata.find { it.id == dto.id }
 
                     // Parseo seguro del estado por si la nube devuelve un String no válido o antiguo
@@ -78,6 +89,9 @@ class SyncVaultUseCase @Inject constructor(
                     } catch (e: Exception) {
                         GameStatus.NONE
                     }
+
+                    // Preservar dateAdded si el juego ya existe localmente
+                    val dateAdded = existingEntity?.dateAdded ?: System.currentTimeMillis()
 
                     val entity = GameEntity(
                         id = dto.id,
@@ -89,14 +103,17 @@ class SyncVaultUseCase @Inject constructor(
                         rating = dto.rating,
                         genres = dto.genres.ifEmpty { repairInfo?.genres ?: emptyList() },
                         platforms = dto.platforms.ifEmpty { repairInfo?.platforms ?: emptyList() },
+                        dateAdded = dateAdded,
                         summary = null,
                         isSynced = true,
                         // Parámetros de personalización recuperados en Room
                         status = safeStatus,
                         personalRating = dto.personalRating,
-                        isFavorite = dto.isFavorite
+                        isFavorite = dto.favorite
                     )
                     gameDao.insertGame(entity)
+
+                    android.util.Log.d("SyncVault", "Juego descargado: ${dto.name}, Favorito: ${dto.favorite}, Estado: ${dto.status}")
 
                     if (repairInfo != null) {
                         val repairedDto = dto.copy(
@@ -106,10 +123,13 @@ class SyncVaultUseCase @Inject constructor(
                         firestoreRepository.saveGame(repairedDto)
                     }
                 }
+            }.onFailure { error ->
+                android.util.Log.e("SyncVault", "Error descargando bóveda: ${error.message}")
             }
 
             Result.success(Unit)
         } catch (e: Exception) {
+            android.util.Log.e("SyncVault", "Excepción en sincronización: ${e.message}", e)
             Result.failure(e)
         }
     }
