@@ -15,21 +15,23 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 /**
- * Estado de la UI para la pantalla de registro, autenticación y recuperación de contraseña.
+ * Representa el estado inmutable de la interfaz de usuario para los flujos de Autenticación
  *
- * @property isLoginMode Indica si la pantalla está en modo login (true) o registro (false)
- * @property email Email ingresado por el usuario
- * @property password Contraseña ingresada por el usuario
- * @property username Nombre de usuario (solo en modo registro)
- * @property isLoading Indica si hay una operación en progreso
- * @property errorMessage Mensaje de error a mostrar al usuario, si existe
- * @property isSuccess Indica si la operación fue exitosa
- * @property failedLoginAttempts Contador de intentos fallidos de inicio de sesión
- * @property isPasswordResetMode Indica si el usuario está en modo de restablecimiento de contraseña
- * @property passwordResetSent Indica si el correo de restablecimiento fue enviado exitosamente
- * @property resetCountdown Contador de segundos para el cooldown de reenvío (0-30)
+ * @property isLoginMode Determina si la UI debe renderizar el formulario de inicio de sesión (`true`) o de registro (`false`)
+ * @property email Valor actual del campo de entrada de correo electrónico
+ * @property password Valor actual del campo de entrada de contraseña
+ * @property username Valor actual del campo de entrada de nombre de usuario (exclusivo del modo registro)
+ * @property isLoading Bandera que indica si existe una transacción de red en progreso, utilizada para bloquear interacciones
+ * @property errorMessage Mensaje de error descriptivo a mostrar al usuario. Es nulo si no hay errores activos
+ * @property isSuccess Bandera que confirma la culminación exitosa de un flujo de autenticación, accionando la navegación
+ * @property failedLoginAttempts Registro acumulativo de intentos fallidos de acceso. Superar el límite activa el modo de recuperación
+ * @property isPasswordResetMode Determina si la UI debe mostrar el flujo de recuperación de contraseña
+ * @property passwordResetSent Confirma si el enlace de restablecimiento fue despachado exitosamente al proveedor de correo
+ * @property resetCountdown Temporizador activo en segundos que impide el reenvío abusivo de correos de recuperación
+ * @property verificationEmailSent Confirma visualmente al usuario que se acaba de enviar el correo de validación tras un registro exitoso.
  */
 data class RegisterUiState(
     val isLoginMode: Boolean = false,
@@ -42,24 +44,21 @@ data class RegisterUiState(
     val failedLoginAttempts: Int = 0,
     val isPasswordResetMode: Boolean = false,
     val passwordResetSent: Boolean = false,
-    val resetCountdown: Int = 0
+    val resetCountdown: Int = 0,
+    val verificationEmailSent: Boolean = false
 )
 
 /**
- * ViewModel que gestiona la lógica de registro, autenticación (Email y Google) y recuperación de contraseña.
+ * ViewModel centralizado para la orquestación de la identidad del usuario
  *
- * Responsabilidades principales:
- * - Validación de formularios (Email, contraseña, usuario)
- * - Procesamiento de registro e inicio de sesión con email
- * - Autenticación con Google mediante Credential Manager
- * - Rastreo de intentos fallidos de login
- * - Gestión del flujo de recuperación de contraseña con cooldown
- * - Envío de correos de restablecimiento vía Firebase Auth
+ * Administra las validaciones locales de entrada y delega las operaciones complejas
+ * a sus respectivos casos de uso (Inicio de sesión con Email, Registro y Autenticación federada con Google).
+ * Además, implementa políticas de seguridad reactivas como el bloqueo por correo no verificado
  *
- * @param registerWithEmailUseCase UseCase para registrar usuarios con email
- * @param loginWithGoogleUseCase UseCase para autenticar con Google
- * @param signInWithEmailUseCase UseCase para iniciar sesión con email
- * @param auth Cliente de FirebaseAuth para operaciones de autenticación
+ * @param registerWithEmailUseCase Caso de uso para crear y validar nuevas cuentas por correo
+ * @param loginWithGoogleUseCase Caso de uso para procesar y autorizar tokens JWT provenientes del sistema operativo
+ * @param signInWithEmailUseCase Caso de uso para autenticar credenciales existentes
+ * @param auth Cliente inyectado de Firebase Auth utilizado para comprobaciones de estado interno
  */
 @HiltViewModel
 class RegisterViewModel @Inject constructor(
@@ -70,16 +69,15 @@ class RegisterViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RegisterUiState())
-    
+
     /**
-     * Estado de la UI que refleja el estado actual de la pantalla de autenticación.
-     * Este es un StateFlow que emite cambios de estado en tiempo real.
+     * Flujo de estado reactivo expuesto a la capa de presentación (UI)
      */
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
 
     /**
-     * Alterna entre modo de inicio de sesión y modo de registro.
-     * Limpia los campos de error, contraseña y reinicia los contadores relacionados.
+     * Alterna la vista principal entre el formulario de acceso y el de creación de cuenta,
+     * purgando los estados temporales de error, contraseñas y advertencias previas
      */
     fun toggleLoginMode() {
         _uiState.update {
@@ -90,104 +88,108 @@ class RegisterViewModel @Inject constructor(
                 failedLoginAttempts = 0,
                 isPasswordResetMode = false,
                 passwordResetSent = false,
-                resetCountdown = 0
+                resetCountdown = 0,
+                verificationEmailSent = false
             )
         }
     }
 
     /**
-     * Actualiza el correo en el estado.
-     * @param newEmail Nuevo valor del correo
+     * Sincroniza la entrada del campo de correo electrónico con el estado
      */
     fun onEmailChanged(newEmail: String) {
         _uiState.update { it.copy(email = newEmail) }
     }
 
     /**
-     * Actualiza la contraseña en el estado.
-     * @param newPassword Nuevo valor de la contraseña
+     * Sincroniza la entrada del campo de contraseña con el estado
      */
     fun onPasswordChanged(newPassword: String) {
         _uiState.update { it.copy(password = newPassword) }
     }
 
     /**
-     * Actualiza el nombre de usuario en el estado.
-     * @param newUsername Nuevo valor del nombre de usuario
+     * Sincroniza la entrada del campo de nombre de usuario con el estado
      */
     fun onUsernameChanged(newUsername: String) {
         _uiState.update { it.copy(username = newUsername) }
     }
 
     /**
-     * Proceso principal de registro/login.
-     *
-     * Realiza validaciones básicas y ejecuta el UseCase correspondiente.
-     * En caso de error en login, rastrea los intentos fallidos.
-     * Después de 3 intentos fallidos, muestra la opción de recuperar contraseña.
+     * Valida sintácticamente los campos requeridos antes de iniciar
+     * la transacción de red y delega la validación de credenciales
+     * y reglas de seguridad a los casos de uso correspondientes.
      */
     fun onRegisterClicked() {
         val currentState = _uiState.value
 
-        // Validación básica
         if (currentState.email.isBlank() || currentState.password.isBlank()) {
             _uiState.update { it.copy(errorMessage = "El correo y la contraseña son obligatorios.") }
             return
         }
 
-        // Validación extra solo si es registro
         if (!currentState.isLoginMode && currentState.username.isBlank()) {
             _uiState.update { it.copy(errorMessage = "Por favor, introduce un nombre de usuario.") }
             return
         }
 
-        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        _uiState.update {
+            it.copy(
+                isLoading = true,
+                errorMessage = null,
+                verificationEmailSent = false
+            )
+        }
 
         viewModelScope.launch {
             if (currentState.isLoginMode) {
-                // Ejecutar inicio de sesión
                 signInWithEmailUseCase(currentState.email, currentState.password)
                     .onSuccess {
-                        _uiState.update { 
+                        _uiState.update {
                             it.copy(
-                                isLoading = false, 
+                                isLoading = false,
                                 isSuccess = true,
                                 failedLoginAttempts = 0,
                                 isPasswordResetMode = false,
                                 passwordResetSent = false
-                            ) 
+                            )
                         }
                     }
                     .onFailure { error ->
                         val newAttempts = currentState.failedLoginAttempts + 1
-                        _uiState.update { 
+                        _uiState.update {
                             it.copy(
-                                isLoading = false, 
+                                isLoading = false,
                                 errorMessage = error.message,
                                 failedLoginAttempts = newAttempts
-                            ) 
+                            )
                         }
                     }
             } else {
-                // Ejecutar registro
-                registerWithEmailUseCase(currentState.email, currentState.password, currentState.username)
+                registerWithEmailUseCase(
+                    currentState.email,
+                    currentState.password,
+                    currentState.username
+                )
                     .onSuccess {
-                        _uiState.update { 
+                        _uiState.update {
                             it.copy(
-                                isLoading = false, 
-                                isSuccess = true,
+                                isLoading = false,
+                                isSuccess = false,
+                                isLoginMode = true,
                                 failedLoginAttempts = 0,
                                 isPasswordResetMode = false,
-                                passwordResetSent = false
-                            ) 
+                                passwordResetSent = false,
+                                verificationEmailSent = true
+                            )
                         }
                     }
                     .onFailure { error ->
-                        _uiState.update { 
+                        _uiState.update {
                             it.copy(
-                                isLoading = false, 
+                                isLoading = false,
                                 errorMessage = error.message
-                            ) 
+                            )
                         }
                     }
             }
@@ -195,42 +197,41 @@ class RegisterViewModel @Inject constructor(
     }
 
     /**
-     * Entra en modo de recuperación de contraseña.
-     * Cambia la UI para mostrar solo el campo de email.
+     * Transiciona la interfaz de usuario al flujo dedicado de recuperación de contraseña
      */
     fun enterPasswordResetMode() {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 isPasswordResetMode = true,
                 errorMessage = null,
-                passwordResetSent = false
-            ) 
+                passwordResetSent = false,
+                verificationEmailSent = false
+            )
         }
     }
 
     /**
-     * Sale del modo de recuperación de contraseña.
-     * Restaura la UI y limpia el estado de recuperación.
+     * Aborta el flujo de recuperación de contraseña y restaura la vista de inicio de sesión estándar
      */
     fun exitPasswordResetMode() {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 isPasswordResetMode = false,
                 passwordResetSent = false,
                 resetCountdown = 0,
                 failedLoginAttempts = 0,
                 errorMessage = null
-            ) 
+            )
         }
     }
 
     /**
-     * Envía un correo de recuperación de contraseña.
-     * Valida el email y envía solicitud a Firebase Auth.
+     * Solicita al proveedor de autenticación el envío de un correo con enlace seguro para
+     * restablecer la contraseña asociada al correo provisto en el estado
      */
     fun sendPasswordReset() {
         val email = _uiState.value.email
-        
+
         if (!isValidEmail(email)) {
             _uiState.update { it.copy(errorMessage = "Por favor, ingresa un correo válido.") }
             return
@@ -240,29 +241,29 @@ class RegisterViewModel @Inject constructor(
 
         auth.sendPasswordResetEmail(email).addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         passwordResetSent = true,
                         resetCountdown = 30,
                         errorMessage = null
-                    ) 
+                    )
                 }
                 startResetCountdown()
             } else {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         isLoading = false,
                         errorMessage = "Error al enviar el correo. Intenta de nuevo."
-                    ) 
+                    )
                 }
             }
         }
     }
 
     /**
-     * Inicia el contador de cooldown de 30 segundos para reenvío.
-     * Decrementa el contador cada segundo.
+     * Inicia una corrutina que gestiona de manera aislada el temporizador de enfriamiento
+     * para mitigar los abusos en la solicitud de correos de recuperación
      */
     private fun startResetCountdown() {
         viewModelScope.launch {
@@ -276,17 +277,19 @@ class RegisterViewModel @Inject constructor(
     }
 
     /**
-     * Valida si el email tiene un formato válido.
-     * @param email Email a validar
-     * @return true si el email tiene formato válido
+     * Realiza una validación estructural de la cadena proporcionada bajo el estándar de direcciones de correo electrónico
+     *
+     * @param email Cadena a evaluar
+     * @return `true` si cumple con los patrones oficiales, `false` en caso contrario
      */
     private fun isValidEmail(email: String): Boolean {
         return Patterns.EMAIL_ADDRESS.matcher(email).matches()
     }
 
     /**
-     * Procesa el token de autenticación de Google.
-     * @param idToken Token de ID obtenido del cliente de Credential Manager
+     * Recibe y procesa el token JWT de identidad despachado por el servicio de Credential Manager del dispositivo
+     *
+     * @param idToken Cadena codificada que certifica la identidad de la cuenta de Google seleccionada
      */
     fun onGoogleLoginTokenReceived(idToken: String) {
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
@@ -307,7 +310,7 @@ class RegisterViewModel @Inject constructor(
     }
 
     /**
-     * Limpia el mensaje de error actual del estado.
+     * Limpia de forma manual la notificación de error visible en pantalla
      */
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
