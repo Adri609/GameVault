@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.gamevault.domain.model.Game
+import com.gamevault.ui.theme.vaultGold
 
 /**
  * Cabecera principal del Perfil de usuario.
@@ -195,17 +196,39 @@ fun BacklogProgressCard(
             ) {
                 if (total == 0) {
                     // Estado vacío
-                    Box(modifier = Modifier.weight(1f).fillMaxHeight().background(Color.Gray.copy(alpha = 0.2f)))
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(Color.Gray.copy(alpha = 0.2f))
+                    )
                 } else {
                     if (completed > 0) {
-                        Box(modifier = Modifier.weight(completed.toFloat()).fillMaxHeight().background(Color(0xFFFFC107)))
+                        Box(
+                            modifier = Modifier
+                                .weight(completed.toFloat())
+                                .fillMaxHeight()
+                                .background(
+                                    vaultGold
+                                )
+                        )
                     }
                     if (playing > 0) {
-                        Box(modifier = Modifier.weight(playing.toFloat()).fillMaxHeight().background(MaterialTheme.colorScheme.primary))
+                        Box(
+                            modifier = Modifier
+                                .weight(playing.toFloat())
+                                .fillMaxHeight()
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
                     }
                     val remaining = total - completed - playing
                     if (remaining > 0) {
-                        Box(modifier = Modifier.weight(remaining.toFloat()).fillMaxHeight().background(Color.Gray.copy(alpha = 0.3f)))
+                        Box(
+                            modifier = Modifier
+                                .weight(remaining.toFloat())
+                                .fillMaxHeight()
+                                .background(Color.Gray.copy(alpha = 0.3f))
+                        )
                     }
                 }
             }
@@ -219,8 +242,16 @@ fun BacklogProgressCard(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 LegendItem(color = Color(0xFFFFC107), label = "Completados", count = completed)
-                LegendItem(color = MaterialTheme.colorScheme.primary, label = "Jugando", count = playing)
-                LegendItem(color = Color.Gray.copy(alpha = 0.5f), label = "Pendientes", count = remaining)
+                LegendItem(
+                    color = MaterialTheme.colorScheme.primary,
+                    label = "Jugando",
+                    count = playing
+                )
+                LegendItem(
+                    color = Color.Gray.copy(alpha = 0.5f),
+                    label = "Pendientes",
+                    count = remaining
+                )
             }
         }
     }
@@ -230,7 +261,10 @@ fun BacklogProgressCard(
 @Composable
 private fun LegendItem(color: Color, label: String, count: Int) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(color))
+        Box(modifier = Modifier
+            .size(10.dp)
+            .clip(CircleShape)
+            .background(color))
         Spacer(modifier = Modifier.width(6.dp))
         Text(text = "$label ($count)", fontSize = 12.sp, color = Color.White)
     }
@@ -240,7 +274,9 @@ private fun LegendItem(color: Color, label: String, count: Int) {
 @Composable
 fun LastAddedCard(game: Game, onClick: () -> Unit) {
     Surface(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     ) {
@@ -248,13 +284,24 @@ fun LastAddedCard(game: Game, onClick: () -> Unit) {
             AsyncImage(
                 model = game.coverUrl,
                 contentDescription = null,
-                modifier = Modifier.size(50.dp, 70.dp).clip(RoundedCornerShape(8.dp)),
+                modifier = Modifier
+                    .size(50.dp, 70.dp)
+                    .clip(RoundedCornerShape(8.dp)),
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column {
-                Text(game.name, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("Hace poco", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    game.name,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    "Hace poco",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -268,7 +315,9 @@ fun SectionTitle(title: String) {
         fontSize = 14.sp,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(bottom = 12.dp, top = 8.dp).fillMaxWidth()
+        modifier = Modifier
+            .padding(bottom = 12.dp, top = 8.dp)
+            .fillMaxWidth()
     )
 }
 
@@ -283,7 +332,12 @@ fun SocialIcon(painter: Painter, color: Color, onClick: () -> Unit = {}) {
         color = color.copy(alpha = 0.1f)
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(painter = painter, contentDescription = null, modifier = Modifier.size(24.dp), tint = color)
+            Icon(
+                painter = painter,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = color
+            )
         }
     }
 }

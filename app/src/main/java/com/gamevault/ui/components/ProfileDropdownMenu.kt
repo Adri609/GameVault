@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
 
@@ -98,7 +99,7 @@ fun ProfileMenuOverlay(
                         if (anchorPosition != Offset.Zero) {
                             val iconButtonPx = with(density) { 48.dp.toPx() }
                             val cutoutRadius = with(density) { 20.dp.toPx() }
-                            val yOffsetCorrection = with(density) { 24.dp.toPx() }
+                            val yOffsetCorrection = with(density) { 38.dp.toPx() }
 
                             drawCircle(
                                 color = Color.Transparent,
@@ -118,7 +119,7 @@ fun ProfileMenuOverlay(
                         .offset {
                             IntOffset(
                                 x = anchorPosition.x.toInt() - 146.dp.roundToPx(),
-                                y = anchorPosition.y.toInt() + 16.dp.roundToPx()
+                                y = anchorPosition.y.toInt() + 6.dp.roundToPx()
                             )
                         }
                         .graphicsLayer {

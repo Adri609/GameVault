@@ -59,7 +59,10 @@ fun StarRatingBar(
     // Efecto de "hundimiento" al presionar
     val starScale by animateFloatAsState(
         targetValue = if (isInteracting) 0.92f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "starScale"
     )
 
@@ -116,7 +119,11 @@ fun StarRatingBar(
                 .padding(horizontal = 10.dp, vertical = 4.dp)
         ) {
             Text(
-                text = String.format(androidx.compose.ui.text.intl.Locale.current.platformLocale, "%.1f", rating),
+                text = String.format(
+                    androidx.compose.ui.text.intl.Locale.current.platformLocale,
+                    "%.1f",
+                    rating
+                ),
                 color = Color(0xFF1A1A24), // Texto oscuro sobre el fondo de color
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 14.sp
@@ -188,7 +195,11 @@ fun StarRatingBar(
  * de su ancho total. Vital para rellenar las estrellas parcialmente.
  */
 private class FractionalRectangleShape(private val fraction: Float) : Shape {
-    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
         return Outline.Rectangle(
             Rect(left = 0f, top = 0f, right = size.width * fraction, bottom = size.height)
         )
