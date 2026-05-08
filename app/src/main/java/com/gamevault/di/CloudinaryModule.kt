@@ -11,14 +11,42 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 /**
- * Módulo de Hilt para proporcionar la instancia de Cloudinary en toda la aplicación.
+ * Módulo de Hilt que gestiona la configuración e inyección de dependencias de **Cloudinary**.
+ *
+ * Cloudinary es un servicio CDN especializado en almacenamiento y transformación de imágenes.
+ * Se utiliza en GameVault para:
+ * - Subir fotos de perfil de usuarios
+ * - Almacenar imágenes personalizadas de juegos
+ * - Aplicar transformaciones (resize, crop, filters) en el navegador
+ *
+ * ## Configuración Requerida
+ * Las siguientes variables deben estar definidas en `local.properties`:
+ * ```properties
+ * CLOUDINARY_NAME=<cloud_name>
+ * CLOUDINARY_API_KEY=<api_key>
+ * CLOUDINARY_CLIENT_SECRET=<api_secret>
+ * ```
+ *
+ * @see CloudinaryModule.provideMediaManager
  */
 @Module
 @InstallIn(SingletonComponent::class)
 object CloudinaryModule {
 
     /**
-     * Proporciona una instancia única de MediaManager configurada con las credenciales de Cloudinary.
+     * Proporciona una instancia única (singleton) de `MediaManager` de Cloudinary.
+     *
+     * Se encarga de:
+     * 1. Leer las credenciales desde `BuildConfig` (inyectadas desde `local.properties`)
+     * 2. Inicializar el SDK de Cloudinary con contexto de la aplicación
+     * 3. Configurar el cliente para futuras operaciones de upload/transformación
+     *
+     * Los logs de depuración muestran los valores configurados (útil para validar setup).
+     *
+     * @param context Contexto de aplicación Android requerido por Cloudinary.
+     * @return Instancia singleton de MediaManager lista para usar.
+     *
+     * @throws IllegalStateException Si las credenciales no están configuradas.
      */
     @Provides
     @Singleton
