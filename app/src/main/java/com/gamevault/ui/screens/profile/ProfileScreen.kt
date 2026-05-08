@@ -274,7 +274,7 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            SectionTitle("Tu ADN Gamer")
+                            SettingsSectionTitle("Tu ADN Gamer")
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                 if (state.topGenres.isNotEmpty()) {
                                     Column(Modifier.weight(1f)) {
@@ -303,7 +303,7 @@ fun ProfileScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                SectionTitle("Redes Sociales")
+                                SettingsSectionTitle("Redes Sociales")
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -327,7 +327,7 @@ fun ProfileScreen(
                 // Último juego añadido
                 state.lastAddedGame?.let { game ->
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        SectionTitle("Último añadido")
+                        SettingsSectionTitle("Último añadido")
                         LastAddedCard(game) {
                             navController.navigate(Routes.GameDetail.createRoute(game.id))
                         }
