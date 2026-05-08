@@ -5,22 +5,26 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.gamevault.R
 
 /**
  * Define las redes sociales soportadas por la aplicación.
- * Encapsula la información visual (icono, color, etiqueta) y la lógica de acción
- * específica de cada plataforma (navegar a web vs. mostrar Toast).
+ * Encapsula la información visual (icono, color de marca, etiqueta) y la lógica de acción
+ * específica de cada plataforma.
  */
 enum class SocialPlatform(
     val label: String,
@@ -33,7 +37,7 @@ enum class SocialPlatform(
             context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
         }
     },
-    TWITCH("Usuario de Twitch", R.drawable.ic_twitch, Color(0xFF9146FF)) {
+    TWITCH("Canal de Twitch", R.drawable.ic_twitch, Color(0xFF9146FF)) {
         override fun performAction(context: Context, username: String) {
             val url = "https://www.twitch.tv/$username"
             context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
@@ -54,12 +58,8 @@ enum class SocialPlatform(
 }
 
 /**
- * Campo de texto estandarizado para introducir nombres de usuario de redes sociales.
- *
- * @param platform La plataforma social que dicta el icono y la etiqueta.
- * @param value El texto actual del campo.
- * @param onValueChange Callback cuando el texto cambia.
- * @param modifier Modificador opcional.
+ * Campo de texto PREMIUM para introducir nombres de usuario de redes sociales.
+ * Aplica el efecto de "Glassmorphism" y se tiñe del color oficial de la red social al enfocarlo.
  */
 @Composable
 fun SocialTextField(
@@ -68,27 +68,44 @@ fun SocialTextField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val glassBg = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(platform.label) },
-        modifier = modifier.fillMaxWidth(),
-        singleLine = true,
+        label = { Text(platform.label, fontWeight = FontWeight.Bold) },
         leadingIcon = {
             Icon(
                 painter = painterResource(id = platform.iconRes),
                 contentDescription = platform.name,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(20.dp) // Un poco más grande para que el SVG luzca mejor
             )
-        }
+        },
+        modifier = modifier.fillMaxWidth(),
+        singleLine = true,
+        shape = RoundedCornerShape(16.dp), // Esquinas redondeadas Premium
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = textColor,
+            unfocusedTextColor = textColor,
+            focusedContainerColor = glassBg,
+            unfocusedContainerColor = glassBg,
+
+            // Usa el color del Enum (ej. Morado para Twitch) cuando tocas el campo
+            focusedBorderColor = platform.brandColor,
+            unfocusedBorderColor = Color.Transparent,
+            focusedLeadingIconColor = platform.brandColor,
+            unfocusedLeadingIconColor = platform.brandColor.copy(alpha = 0.6f),
+            focusedLabelColor = platform.brandColor,
+            unfocusedLabelColor = platform.brandColor.copy(alpha = 0.6f),
+            cursorColor = platform.brandColor
+        )
     )
 }
 
 /**
- * Icono interactivo para redes sociales que ejecuta su propia acción al ser pulsado.
- *
- * @param platform La plataforma social a mostrar.
- * @param username El nombre de usuario vinculado a esa plataforma.
+ * Icono circular interactivo para redes sociales que ejecuta su propia acción al ser pulsado.
+ * Mantiene el estilo consistente con el resto de la interfaz.
  */
 @Composable
 fun SocialActionIcon(

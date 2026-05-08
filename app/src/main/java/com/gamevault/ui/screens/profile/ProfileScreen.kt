@@ -18,7 +18,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -237,23 +236,21 @@ fun ProfileScreen(
                             iconTint = vaultGold
                         )
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         StatCard(
                             modifier = Modifier.weight(1f),
                             label = "Media Global",
-                            value = String.format(LocalLocale.current.platformLocale, "%.1f", state.averageRating / 10),
+                            value = String.format(java.util.Locale.getDefault(), "%.1f", state.averageRating / 10f),
                             icon = Icons.Default.Public
                         )
                         StatCard(
                             modifier = Modifier.weight(1f),
                             label = "Tu Media",
-                            value = String.format(LocalLocale.current.platformLocale, "%.1f", state.personalAverage),
+                            value = String.format(java.util.Locale.getDefault(), "%.1f", state.personalAverage),
                             icon = Icons.Default.Star,
                             iconTint = MaterialTheme.colorScheme.primary
                         )
+                    }
                     }
                 }
 
@@ -340,4 +337,3 @@ fun ProfileScreen(
             }
         }
     }
-}
