@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     // Llamar al enrutador principal
-                    AppNavigation()
+                    AppNavigation(isDarkTheme = useDarkTheme)
                 }
             }
         }

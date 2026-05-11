@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -37,26 +36,31 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import kotlinx.coroutines.launch
 
 /**
- * Raíz de la jerarquía de interfaces para los procesos de Identidad y Acceso
+ * Componente principal de la interfaz de usuario encargado de la orquestación
+ * de los procesos de Identidad y Acceso (IAM) en la aplicación.
  *
- * Emplea un paradigma declarativo y dinámico para conmutar transparentemente entre
- * tres modalidades sin necesidad de incurrir en transiciones de navegación pesadas:
- * 1. **Alta de Cuenta:** Captación de credenciales primarias para nuevos usuarios
- * 2. **Inicio de Sesión:** Autenticación de usuarios preexistentes por credenciales clásicas o delegación a Google Identity
- * 3. **Gestión de Credenciales (Recuperación):** Flujo preventivo y correctivo expuesto inteligentemente
- *    tras la reincidencia de fallos de acceso
- *
- * @param viewModel Puente reactivo inyectado que aloja la lógica de dominio y los manejadores de estado
- * @param onNavigateToHome Función de orden superior ejecutada como efecto secundario una vez completado el protocolo de acceso
+ * @param isDarkTheme Recibe explícitamente el estado del tema desde la configuración
+ * global (Single Source of Truth) para sincronizar el fondo y los colores.
+ * @param viewModel Puente reactivo inyectado mediante Hilt.
+ * @param onNavigateToHome Función ejecutada tras el acceso exitoso.
  */
 @Composable
 fun RegisterScreen(
+    isDarkTheme: Boolean, // <-- ¡AQUÍ ESTÁ EL PARÁMETRO QUE FALTABA!
     viewModel: RegisterViewModel = hiltViewModel(),
     onNavigateToHome: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    // Ya no leemos el sistema aquí, usamos directamente el 'isDarkTheme' que nos llega
+
+    val primaryTextColor = if (isDarkTheme) Color.White else MaterialTheme.colorScheme.onSurface
+    val secondaryTextColor = if (isDarkTheme) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
+    val dividerColor = if (isDarkTheme) Color.White.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+    val formBackgroundColor = if (isDarkTheme) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val successTextColor = if (isDarkTheme) Color(0xFF66C0F4) else MaterialTheme.colorScheme.primary
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
@@ -65,24 +69,40 @@ fun RegisterScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = R.drawable.fondohumos),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.6f),
-                            Color.Black.copy(alpha = 0.9f)
+
+        if (isDarkTheme) {
+            Image(
+                painter = painterResource(id = R.drawable.fondohumos),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.6f),
+                                Color.Black.copy(alpha = 0.9f)
+                            )
                         )
                     )
-                )
-        )
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surface,
+                                MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        )
+                    )
+            )
+        }
 
         Column(
             modifier = Modifier
@@ -97,7 +117,7 @@ fun RegisterScreen(
 
             Image(
                 painter = painterResource(id = R.drawable.logo_pmgbueno),
-                contentDescription = "Logo GameVault",
+                contentDescription = "Logo corporativo GameVault",
                 modifier = Modifier
                     .size(265.dp)
                     .align(Alignment.CenterHorizontally)
@@ -110,7 +130,7 @@ fun RegisterScreen(
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 0.sp
                 ),
-                color = Color.White
+                color = primaryTextColor
             )
 
             Text(
@@ -121,7 +141,7 @@ fun RegisterScreen(
                 },
                 modifier = Modifier.offset(y = (-35).dp),
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.White.copy(alpha = 0.7f),
+                color = secondaryTextColor,
                 textAlign = TextAlign.Center
             )
 
@@ -130,7 +150,7 @@ fun RegisterScreen(
                     .offset(y = (-15).dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White.copy(alpha = 0.08f))
+                    .background(formBackgroundColor)
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -192,7 +212,7 @@ fun RegisterScreen(
                 if (uiState.verificationEmailSent && uiState.isLoginMode && uiState.errorMessage == null) {
                     Text(
                         text = "¡Registro exitoso! Revisa tu bandeja de entrada y verifica tu cuenta para iniciar sesión.",
-                        color = Color(0xFF66C0F4),
+                        color = successTextColor,
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(bottom = 16.dp),
                         textAlign = TextAlign.Center
@@ -202,7 +222,7 @@ fun RegisterScreen(
                 if (uiState.isPasswordResetMode && uiState.passwordResetSent) {
                     Text(
                         text = "Correo enviado. Por favor, revisa tu bandeja de entrada y la carpeta de Spam.",
-                        color = Color(0xFF66C0F4),
+                        color = successTextColor,
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(bottom = 16.dp),
                         textAlign = TextAlign.Center
@@ -227,7 +247,7 @@ fun RegisterScreen(
                         if (uiState.isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(24.dp),
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         } else {
                             Text(buttonText, fontWeight = FontWeight.Bold, fontSize = 16.sp)
@@ -251,17 +271,17 @@ fun RegisterScreen(
                 ) {
                     HorizontalDivider(
                         modifier = Modifier.weight(1f),
-                        color = Color.White.copy(alpha = 0.2f)
+                        color = dividerColor
                     )
                     Text(
                         text = "o continúa con",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = secondaryTextColor,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                     HorizontalDivider(
                         modifier = Modifier.weight(1f),
-                        color = Color.White.copy(alpha = 0.2f)
+                        color = dividerColor
                     )
                 }
 
@@ -302,7 +322,7 @@ fun RegisterScreen(
                 ) {
                     Text(
                         text = if (uiState.isLoginMode) "¿No tienes cuenta? Regístrate aquí" else "¿Ya tienes cuenta? Inicia sesión",
-                        color = Color.White,
+                        color = primaryTextColor,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -311,23 +331,13 @@ fun RegisterScreen(
             } else {
                 Spacer(modifier = Modifier.height(8.dp))
                 TextButton(onClick = { viewModel.exitPasswordResetMode() }) {
-                    Text("Volver al inicio de sesión", color = Color.White)
+                    Text("Volver al inicio de sesión", color = primaryTextColor)
                 }
             }
         }
     }
 }
 
-/**
- * Implementación de Autenticación Federada de Google utilizando el ecosistema de Credential Manager
- *
- * Sustituye implementaciones legadas mediante la invocación de las interfaces nativas de Android, garantizando
- * una mayor privacidad y retención del usuario En caso de delegación exitosa de identidad,
- * se aísla el token JWT para delegar la autorización resolutiva en el [RegisterViewModel]
- *
- * @param context Entorno operativo requerido para el despliegue de modales del sistema
- * @param viewModel Objeto receptor y responsable de emitir las transacciones con el backend de Firebase
- */
 private suspend fun signInWithGoogle(
     context: android.content.Context,
     viewModel: RegisterViewModel
@@ -335,13 +345,16 @@ private suspend fun signInWithGoogle(
     try {
         val credentialManager = CredentialManager.create(context)
         val webClientId = context.getString(R.string.default_web_client_id)
+
         val googleIdOption = GetGoogleIdOption.Builder()
             .setFilterByAuthorizedAccounts(false)
             .setServerClientId(webClientId)
             .build()
+
         val request = GetCredentialRequest.Builder()
             .addCredentialOption(googleIdOption)
             .build()
+
         val result = credentialManager.getCredential(context, request)
 
         when (result.credential.type) {
@@ -352,14 +365,13 @@ private suspend fun signInWithGoogle(
                     )
                 viewModel.onGoogleLoginTokenReceived(googleIdTokenCredential.idToken)
             }
-
             else -> {
-                Log.e("GoogleSignIn", "Tipo de credencial no reconocido: ${result.credential.type}")
+                Log.e("GoogleSignIn", "Excepción de delegación: Tipo de credencial no reconocido (${result.credential.type})")
             }
         }
     } catch (e: GetCredentialException) {
-        Log.e("GoogleSignIn", "Error al obtener credencial: ${e.localizedMessage}")
+        Log.e("GoogleSignIn", "Cancelación o fallo en la resolución de credenciales: ${e.localizedMessage}")
     } catch (e: Exception) {
-        Log.e("GoogleSignIn", "Error inesperado durante Google Sign-In: ${e.localizedMessage}")
+        Log.e("GoogleSignIn", "Fallo crítico irrecuperable durante Google Sign-In: ${e.localizedMessage}")
     }
 }

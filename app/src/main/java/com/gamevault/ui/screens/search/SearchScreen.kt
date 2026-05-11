@@ -3,7 +3,6 @@ package com.gamevault.ui.screens.search
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,45 +31,39 @@ import com.gamevault.ui.components.SearchInputField
 /**
  * Pantalla principal de búsqueda de videojuegos.
  *
- * Permite al usuario introducir consultas de texto para buscar juegos en el catálogo,
- * gestionando de forma reactiva los diferentes estados de la petición (inicial, carga, éxito y error).
- * Además, provee accesos rápidos para añadir juegos a la bóveda personal desde los propios resultados.
+ * Permite al usuario introducir consultas de texto para explorar el catálogo de juegos.
+ * Integra un modelo reactivo para gestionar las transiciones entre los estados de red
+ * (Inicial, Carga, Éxito y Error) de forma fluida.
+ * * Este componente es 100% Theme-Aware, delegando la resolución de colores al `MaterialTheme.colorScheme`
+ * para garantizar coherencia visual y soporte nativo al Modo Claro/Oscuro sin hardcoding de colores.
  *
- * @param onNavigateToGameDetail Callback ejecutado cuando el usuario selecciona un juego; recibe el ID del mismo.
- * @param viewModel ViewModel inyectado por Hilt que contiene la lógica y el estado del flujo de búsqueda.
+ * @param onNavigateToGameDetail Callback de navegación activado al seleccionar una entidad de juego.
+ * @param viewModel Puente reactivo (Hilt) gestor del estado de búsqueda y lógica de dominio.
  */
 @Composable
 fun SearchScreen(
     onNavigateToGameDetail: (Long) -> Unit,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
+    // Suscripción al estado de la UI
     val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current
-
-    // DETECCIÓN DE MODO CLARO / OSCURO
-    val isDarkTheme = isSystemInDarkTheme()
-
-    // Colores
-    val backgroundColor = if (isDarkTheme) Color(0xFF0D0D12) else Color.White
-    val textColor = if (isDarkTheme) Color.White else Color.Black
-    val secondaryTextColor = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
-    val surfaceColor = if (isDarkTheme) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f)
-    val accentColor = if (isDarkTheme) Color(0xFF03DAC6) else Color(0xFF6200EE)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundColor)
+            // Delegar el color de fondo a la paleta del tema oficial (soporte nativo Claro/Oscuro)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        // BARRA DE BÚSQUEDA
         SearchInputField(
             query = state.query,
             onQueryChange = { viewModel.onQueryChange(it) },
             onSearch = {
                 viewModel.performSearch()
+                // Retirar el foco del input para cerrar el teclado virtual
                 focusManager.clearFocus()
             },
             placeholderText = "Buscar juegos (ej: Elden Ring)...",
@@ -79,32 +72,33 @@ fun SearchScreen(
                 .padding(bottom = 16.dp)
         )
 
-        // GESTIÓN DE ESTADOS
         Crossfade(
             targetState = state.results,
             animationSpec = tween(500),
             label = "SearchTransition"
         ) { results ->
             when (results) {
+                // 1. ESTADO DE CARGA
                 is Resource.Loading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = accentColor)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 }
 
+                // ESTADO DE ERROR
                 is Resource.Error -> {
                     SearchStateMessage(
                         icon = Icons.Outlined.Warning,
                         title = "Vaya, algo salió mal",
                         subtitle = results.message ?: "Ocurrió un error al buscar los juegos.",
-                        textColor = textColor,
-                        secondaryTextColor = secondaryTextColor,
-                        iconTint = MaterialTheme.colorScheme.error,
-                        surfaceColor = surfaceColor
+                        iconTint = MaterialTheme.colorScheme.error
                     ) {
                         Button(
                             onClick = { viewModel.performSearch() },
-                            colors = ButtonDefaults.buttonColors(containerColor = accentColor, contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
                             modifier = Modifier.padding(top = 16.dp)
                         ) {
                             Text("Reintentar")
@@ -112,19 +106,19 @@ fun SearchScreen(
                     }
                 }
 
+                // ESTADO DE ÉXITO
                 is Resource.Success -> {
                     val games = results.data ?: emptyList()
                     if (games.isEmpty()) {
+                        // Búsqueda sin coincidencias
                         SearchStateMessage(
                             icon = Icons.Outlined.Search,
                             title = "Sin resultados",
                             subtitle = "No se encontraron juegos para \"${state.query}\"",
-                            textColor = textColor,
-                            secondaryTextColor = secondaryTextColor,
-                            iconTint = secondaryTextColor,
-                            surfaceColor = surfaceColor
+                            iconTint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     } else {
+                        // Renderizado de la cuadrícula de juegos
                         GameGrid(
                             games = games,
                             onGameClick = { game -> onNavigateToGameDetail(game.id) },
@@ -136,15 +130,13 @@ fun SearchScreen(
                     }
                 }
 
+                // ESTADO INICIAL
                 null -> {
                     SearchStateMessage(
                         icon = Icons.Outlined.SportsEsports,
                         title = "Explora el catálogo",
                         subtitle = "Escribe el nombre de un juego para empezar a buscar.",
-                        textColor = textColor,
-                        secondaryTextColor = secondaryTextColor,
-                        iconTint = secondaryTextColor,
-                        surfaceColor = surfaceColor
+                        iconTint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -153,27 +145,24 @@ fun SearchScreen(
 }
 
 /**
- * Componente visual de apoyo utilizado para representar los distintos estados
- * no exitosos o informativos de la pantalla de búsqueda (estado inicial, sin resultados o error).
+ * Componente abstracto y reutilizable para ilustrar los estados de la máquina de red
+ * (Idle, Empty, Error) mediante iconografía y tipografía estructurada.
  *
- * @param icon Icono vectorial que ilustra el estado actual de la pantalla.
- * @param title Título principal del mensaje de estado.
- * @param subtitle Texto secundario con una explicación más detallada.
- * @param textColor Color del texto principal (adaptable al tema).
- * @param secondaryTextColor Color del texto secundario (adaptable al tema).
- * @param iconTint Color aplicado al icono.
- * @param surfaceColor Color del fondo del contenedor del icono (adaptable al tema).
- * @param extraContent Slot componible opcional para incluir acciones adicionales (ej. un botón de reintento).
+ * Utiliza los tokens semánticos de `MaterialTheme.colorScheme` de forma interna para
+ * garantizar la legibilidad independientemente del tema global seleccionado.
+ *
+ * @param icon Recurso vectorial que representa visualmente el estado.
+ * @param title Cabecera principal informativa.
+ * @param subtitle Descripción de apoyo detallando el estado actual o la acción requerida.
+ * @param iconTint Color de énfasis aplicado al recurso vectorial.
+ * @param extraContent Slot componible para inyectar elementos de interacción (ej. Call To Actions).
  */
 @Composable
 fun SearchStateMessage(
     icon: ImageVector,
     title: String,
     subtitle: String,
-    textColor: Color,
-    secondaryTextColor: Color,
     iconTint: Color,
-    surfaceColor: Color,
     extraContent: @Composable () -> Unit = {}
 ) {
     Box(
@@ -186,11 +175,12 @@ fun SearchStateMessage(
                 .padding(32.dp)
                 .offset(y = (-40).dp)
         ) {
+            // Contenedor semitransparente del icono
             Box(
                 modifier = Modifier
                     .size(80.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(surfaceColor),
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -200,22 +190,29 @@ fun SearchStateMessage(
                     modifier = Modifier.size(40.dp)
                 )
             }
+
             Spacer(modifier = Modifier.height(24.dp))
+
+            // Tipografía principal
             Text(
                 text = title,
-                color = textColor,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
+
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Tipografía secundaria de apoyo
             Text(
                 text = subtitle,
-                color = secondaryTextColor,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center
             )
 
+            // Espacio de inyección para acciones adicionales
             extraContent()
         }
     }
