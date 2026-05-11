@@ -28,9 +28,11 @@ private const val ANIM_DURATION = 300
  * Configura el grafo de navegación raíz de la aplicación.
  * Define los destinos principales de nivel superior y las transiciones animadas
  * entre las diferentes pantallas utilizando Jetpack Navigation Compose.
+ * * @param isDarkTheme Estado global del tema inyectado desde la MainActivity
+ * para garantizar coherencia visual (Single Source of Truth) en pantallas específicas.
  */
 @Composable
-fun AppNavigation() {
+fun AppNavigation(isDarkTheme: Boolean) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = Routes.Register.route) {
@@ -52,6 +54,7 @@ fun AppNavigation() {
             }
         ) {
             RegisterScreen(
+                isDarkTheme = isDarkTheme,
                 onNavigateToHome = {
                     navController.navigate(Routes.Main.route) {
                         popUpTo(Routes.Register.route) { inclusive = true }
