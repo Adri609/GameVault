@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,12 +18,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
@@ -71,8 +70,8 @@ fun RegisterScreen(
     Box(modifier = Modifier.fillMaxSize()) {
 
         if (isDarkTheme) {
-            Image(
-                painter = painterResource(id = R.drawable.fondohumos),
+            AsyncImage(
+                model = R.drawable.fondohumos,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -115,8 +114,8 @@ fun RegisterScreen(
         ) {
             Spacer(modifier = Modifier.height(30.dp))
 
-            Image(
-                painter = painterResource(id = R.drawable.logo_pmgbueno),
+            AsyncImage(
+                model = R.drawable.logo_pmgbueno,
                 contentDescription = "Logo corporativo GameVault",
                 modifier = Modifier
                     .size(265.dp)
@@ -306,8 +305,8 @@ fun RegisterScreen(
                     border = null
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Image(
-                            painter = painterResource(id = R.drawable.logogoogle),
+                        AsyncImage(
+                            model = R.drawable.logogoogle,
                             contentDescription = null,
                             modifier = Modifier.size(24.dp)
                         )
