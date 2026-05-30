@@ -360,7 +360,7 @@ Si encuentras un bug, por favor:
 
 ## 📄 Licencia
 
-Este proyecto está licenciado bajo la **MIT License** - mira el archivo [LICENSE](LICENSE) para más detalles.
+Este proyecto está licenciado bajo la **Apache 2.0** - mira el archivo [LICENSE](LICENSE) para más detalles.
 
 ---
 
